@@ -9,9 +9,7 @@ import {
 import { relations } from 'drizzle-orm';
 
 export const settings = pgTable('settings', {
-  id: integer('id')
-    .primaryKey()
-    .$defaultFn(() => 1),
+  id: integer('id').primaryKey(),
   title: varchar('title', { length: 256 }).notNull(),
   logo: text('logo').notNull(),
   copyright: varchar('copyright', { length: 256 }).notNull(),
