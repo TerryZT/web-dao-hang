@@ -32,9 +32,9 @@ export function MainHeader({ settings }: { settings: Settings }) {
                 <text fill="#888" xmlSpace="preserve" style={{whiteSpace: "pre"}} fontFamily="Microsoft YaHei" fontSize="14" letterSpacing="0em"><tspan x="200" y="70">0-12岁</tspan></text>
               </svg>
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold font-headline tracking-tight bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500 bg-clip-text text-transparent animate-gradient">Hello</h1>
-            <p className="mt-3 text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-400 via-pink-500 via-red-500 via-yellow-400 via-green-400 to-blue-500 bg-clip-text text-transparent animate-gradient">Welcome to All-Subject English Enlightenment</p>
-            <p className="mt-4 text-sm max-w-2xl mx-auto bg-gradient-to-r from-red-400 via-orange-500 via-yellow-400 via-lime-500 via-cyan-400 to-indigo-500 bg-clip-text text-transparent animate-gradient">系统 (平台) 由 Erin 英语全科启蒙团队独立开发完成</p>
+            <h1 className="text-5xl md:text-6xl font-bold font-headline tracking-tight bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 bg-clip-text text-transparent animate-gradient">Hello</h1>
+            <p className="mt-3 text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-400 via-green-400 to-yellow-400 bg-clip-text text-transparent animate-gradient">Welcome to All-Subject English Enlightenment</p>
+            <p className="mt-4 text-sm max-w-2xl mx-auto bg-gradient-to-r from-red-400 via-orange-500 to-indigo-500 bg-clip-text text-transparent animate-gradient">系统 (平台) 由 Erin 英语全科启蒙团队独立开发完成</p>
         </div>
     </header>
   );
