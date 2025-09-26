@@ -18,6 +18,7 @@ export function MainHeader({ settings }: { settings: Settings }) {
                         alt="Logo"
                         width={600}
                         height={200}
+                        sizes="100vw"
                         className="object-contain h-full w-auto"
                         priority
                     />

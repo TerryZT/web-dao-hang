@@ -57,7 +57,7 @@ export function LinkGrid({ categories }: { categories: Category[] }) {
                         <CardContent className="p-5 flex flex-col items-center justify-center text-center h-full">
                             <div className="w-full h-24 mb-4 relative flex items-center justify-center">
                                 {link.logoUrl ? (
-                                    <Image src={link.logoUrl} alt={`${link.name} logo`} layout="fill" className="object-contain" />
+                                    <Image src={link.logoUrl} alt={`${link.name} logo`} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-contain" />
                                 ) : (
                                     <Globe className="h-12 w-12 text-muted-foreground"/>
                                 )}
