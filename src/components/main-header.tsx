@@ -1,20 +1,17 @@
 import Link from "next/link";
 import type { Settings } from "@/lib/types";
 import { ThemeToggle } from "./theme-toggle";
-import { Logo } from "./logo";
 
 export function MainHeader({ settings }: { settings: Settings }) {
   return (
-    <header className="border-b sticky top-0 bg-background/95 backdrop-blur-sm z-10">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
-          <Link href="/" className="flex items-center gap-3">
-            <Logo logo={settings.logo} className="w-8 h-8 text-lg" />
-            <h1 className="text-xl font-bold font-headline tracking-tight">{settings.title}</h1>
-          </Link>
-          <ThemeToggle />
+    <header className="py-12 md:py-20 text-center">
+        <div className="container mx-auto px-4">
+            <h1 className="text-4xl md:text-5xl font-bold font-headline tracking-tight">{settings.title}</h1>
+            <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">聚合全网优质网址，助你工作学习更高效！</p>
+            <div className="absolute top-4 right-4">
+              <ThemeToggle />
+            </div>
         </div>
-      </div>
     </header>
   );
 }

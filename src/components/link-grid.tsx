@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { Category } from "@/lib/types";
+import type { Category, LinkItem } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Link as LinkIcon } from "lucide-react";
+import { Search, Globe } from "lucide-react";
 
 export function LinkGrid({ categories }: { categories: Category[] }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -28,53 +27,52 @@ export function LinkGrid({ categories }: { categories: Category[] }) {
   }, [searchTerm, categories]);
 
   return (
-    <div className="space-y-8">
-      <div className="relative max-w-lg mx-auto">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="搜索网站..."
-          className="w-full pl-10 py-6 text-lg rounded-full shadow-sm"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+    <div className="space-y-12">
+      <div className="relative max-w-2xl mx-auto">
+        <div className="gradient-border-bg rounded-full p-px">
+          <div className="relative">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
+            <Input
+              type="search"
+              placeholder="探索..."
+              className="w-full pl-14 pr-6 py-8 text-xl rounded-full shadow-lg border-0 bg-card focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
       </div>
       
       {filteredCategories.length > 0 ? (
         <div className="space-y-10">
-          <TooltipProvider>
             {filteredCategories.map((category) => (
               <section key={category.id}>
-                <h2 className="font-headline text-2xl font-bold mb-4 border-l-4 border-primary pl-4">{category.name}</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                <h2 className="font-headline text-2xl font-bold mb-6">{category.name}</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                   {category.links.map((link) => (
-                    <Tooltip key={link.id}>
-                      <TooltipTrigger asChild>
-                        <a
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="group"
-                        >
-                          <Card className="h-full hover:shadow-lg hover:border-primary transition-all duration-200">
-                            <CardContent className="p-4 flex items-center gap-4">
-                                <div className="p-2 bg-muted rounded-lg">
-                                    <LinkIcon className="h-5 w-5 text-muted-foreground"/>
-                                </div>
-                                <span className="font-semibold truncate">{link.name}</span>
-                            </CardContent>
-                          </Card>
-                        </a>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{link.description}</p>
-                      </TooltipContent>
-                    </Tooltip>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group"
+                      key={link.id}
+                    >
+                      <Card className="h-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-in-out bg-card/50 backdrop-blur-sm">
+                        <CardContent className="p-5 flex flex-col gap-4">
+                            <div className="w-14 h-14 flex items-center justify-center bg-muted rounded-xl shadow-sm">
+                                <Globe className="h-7 w-7 text-muted-foreground"/>
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-lg">{link.name}</h3>
+                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2 h-[40px]">{link.description}</p>
+                            </div>
+                        </CardContent>
+                      </Card>
+                    </a>
                   ))}
                 </div>
               </section>
             ))}
-          </TooltipProvider>
         </div>
       ) : (
         <div className="text-center py-16">

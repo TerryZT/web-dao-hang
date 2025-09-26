@@ -10,7 +10,7 @@ export default async function Home() {
   return (
     <div className="flex flex-col flex-1">
       <MainHeader settings={settings} />
-      <main className="flex-1 container mx-auto px-4 py-8 md:py-12">
+      <main className="flex-1 container mx-auto px-4 pb-12 md:pb-20">
         <LinkGrid categories={categories} />
       </main>
       <MainFooter settings={settings} />
