@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReducer } from "react";
 import { useFormStatus } from "react-dom";
 import { login } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,10 @@ function SubmitButton() {
 }
 
 export default function LoginPage() {
-  const [state, formAction] = useActionState(login, undefined);
+  const [state, formAction] = useReducer(
+    (_: any, formData: FormData) => login(_, formData),
+    undefined
+  );
 
   return (
     <main className="flex items-center justify-center min-h-screen bg-muted/40">

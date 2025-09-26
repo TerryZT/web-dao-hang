@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useTransition, useActionState } from "react";
+import { useEffect, useTransition, useReducer } from "react";
 import { useRouter } from "next/navigation";
 import type { Settings } from "@/lib/types";
 import { saveSettings, changePassword } from "@/lib/actions";
@@ -35,7 +35,10 @@ export function SettingsManager({ initialSettings }: { initialSettings: Settings
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const [passwordState, passwordFormAction] = useActionState(changePassword, undefined);
+  const [passwordState, passwordFormAction] = useReducer(
+    (_: any, formData: FormData) => changePassword(_, formData),
+    undefined
+  );
 
   useEffect(() => {
     if (passwordState?.message) {
