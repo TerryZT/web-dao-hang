@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useReducer, useTransition } from "react";
+import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Settings } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -25,39 +25,32 @@ export function SettingsManager({ initialSettings }: { initialSettings: Settings
   const { toast } = useToast();
   const [settings, setSettings] = useState(initialSettings);
   const [isSettingsPending, startSettingsTransition] = useTransition();
-  const [isPasswordPending, setIsPasswordPending] = useState(false);
-
-  const [passwordFormState, passwordFormAction] = useReducer(
-    (state: any, payload: { message: string; type: 'success' | 'error' }) => payload,
-    { message: '', type: 'success' }
-  );
+  const [isPasswordPending, startPasswordTransition] = useTransition();
+  const [passwordMessage, setPasswordMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
   const handlePasswordSubmit = async (formData: FormData) => {
-    setIsPasswordPending(true);
-    const result = await changePassword(passwordFormState, formData);
-    passwordFormAction(result);
-    setIsPasswordPending(false);
-    
-    if (result?.message) {
-      toast({
-        title: result.type === 'success' ? "成功" : "错误",
-        description: result.message,
-        variant: result.type === 'error' ? "destructive" : "default",
-      });
-      if(result.type === 'success') {
-        (document.getElementById('password-form') as HTMLFormElement)?.reset();
+    startPasswordTransition(async () => {
+      const result = await changePassword(formData);
+      if (result?.message) {
+        setPasswordMessage({ text: result.message, type: result.type });
+        toast({
+          title: result.type === 'success' ? "成功" : "错误",
+          description: result.message,
+          variant: result.type === 'error' ? "destructive" : "default",
+        });
+        if(result.type === 'success') {
+          (document.getElementById('password-form') as HTMLFormElement)?.reset();
+        }
       }
-    }
+    });
   };
 
-  const handleSettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-     if (type === 'checkbox') {
-        const { checked } = e.target as HTMLInputElement;
-        setSettings(prev => ({...prev, [name]: checked}));
-    } else {
-        setSettings(prev => ({...prev, [name]: value}));
-    }
+  const handleSettingsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setSettings(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+    }));
   }
 
   const handleSaveSettings = (e: React.FormEvent) => {
@@ -99,7 +92,12 @@ export function SettingsManager({ initialSettings }: { initialSettings: Settings
                     <Label htmlFor="searchEnabled">启用搜索功能</Label>
                     <p className="text-xs text-muted-foreground">在主页上显示搜索框。</p>
                 </div>
-                <Switch id="searchEnabled" name="searchEnabled" checked={settings.searchEnabled} onCheckedChange={(checked) => setSettings(prev => ({...prev, searchEnabled: checked}))} />
+                <Switch 
+                    id="searchEnabled" 
+                    name="searchEnabled" 
+                    checked={settings.searchEnabled} 
+                    onCheckedChange={(checked) => setSettings(prev => ({...prev, searchEnabled: checked}))} 
+                />
             </div>
             <SubmitButton isPending={isSettingsPending} text="保存设置" pendingText="保存中..." />
           </form>

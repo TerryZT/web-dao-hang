@@ -11,24 +11,34 @@ import { z } from 'zod';
 const dataPath = path.join(process.cwd(), 'src', 'lib', 'app-data.json');
 const sessionCookieName = 'erin-nav-session';
 
-const readData = async (): Promise<AppData> => {
+// IMPORTANT: This file now only handles AUTH, which still uses a JSON file
+// for the password hash for simplicity. It does NOT interact with the database.
+
+const readAuthData = async (): Promise<{ adminPasswordHash: string }> => {
   try {
-    const fileContent = await fs.readFile(dataPath, 'utf-8');
-    return JSON.parse(fileContent);
+    // This file is a fallback and should be created if it doesn't exist.
+    await fs.access(dataPath);
   } catch (error) {
-    console.error('Error reading data file:', error);
-    throw new Error('Could not read app data.');
+     const defaultData: AppData = {
+        settings: { id: 1, title: '', logo: '', copyright: '', searchEnabled: true },
+        categories: [],
+        adminPasswordHash: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', // default: 'password'
+      };
+    await fs.writeFile(dataPath, JSON.stringify(defaultData, null, 2), 'utf-8');
   }
+
+  const fileContent = await fs.readFile(dataPath, 'utf-8');
+  const data = JSON.parse(fileContent);
+  return { adminPasswordHash: data.adminPasswordHash };
 };
 
-const writeData = async (data: AppData): Promise<void> => {
-  try {
-    await fs.writeFile(dataPath, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (error) {
-    console.error('Error writing data file:', error);
-    throw new Error('Could not write app data.');
-  }
+const writeAuthData = async (passwordHash: string): Promise<void> => {
+  const fileContent = await fs.readFile(dataPath, 'utf-8');
+  const data = JSON.parse(fileContent);
+  data.adminPasswordHash = passwordHash;
+  await fs.writeFile(dataPath, JSON.stringify(data, null, 2), 'utf-8');
 };
+
 
 function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
@@ -46,11 +56,10 @@ export async function login(
     };
   }
 
-  const data = await readData();
-  const storedHash = data.adminPasswordHash;
+  const { adminPasswordHash } = await readAuthData();
   const inputHash = hashPassword(password);
 
-  if (inputHash === storedHash) {
+  if (inputHash === adminPasswordHash) {
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     cookies().set(sessionCookieName, 'loggedIn', { expires, httpOnly: true });
     redirect('/admin');
@@ -79,7 +88,6 @@ const passwordSchema = z
   });
 
 export async function changePassword(
-  prevState: any,
   formData: FormData
 ): Promise<{ message: string; type: 'success' | 'error' }> {
   const validatedFields = passwordSchema.safeParse(
@@ -92,8 +100,7 @@ export async function changePassword(
 
   const { currentPassword, newPassword } = validatedFields.data;
   
-  const data = await readData();
-  const storedHash = data.adminPasswordHash;
+  const { adminPasswordHash: storedHash } = await readAuthData();
   const currentHash = hashPassword(currentPassword);
 
   if (currentHash !== storedHash) {
@@ -102,8 +109,7 @@ export async function changePassword(
 
   try {
     const newHash = hashPassword(newPassword);
-    data.adminPasswordHash = newHash;
-    await writeData(data);
+    await writeAuthData(newHash);
     return { message: '密码修改成功！', type: 'success' };
   } catch (e) {
     const error = e as Error;

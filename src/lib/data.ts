@@ -1,52 +1,69 @@
-"use server";
+'use server';
 
-import "server-only";
-import type { Category, LinkItem, Settings, AppData } from "@/lib/types";
-import fs from "fs/promises";
-import path from "path";
+import 'server-only';
+import { db } from './db';
+import * as schema from './schema';
+import type { Category, Settings } from './types';
+import { eq } from 'drizzle-orm';
 
-// Path to the JSON file
-const dataPath = path.join(process.cwd(), "src", "lib", "app-data.json");
+// Helper function to handle potential empty results
+async function getOrCreateDefaultSettings(): Promise<Settings> {
+    let settingsResult = await db.select().from(schema.settings).where(eq(schema.settings.id, 1));
+    
+    if (settingsResult.length === 0) {
+        // If no settings exist, create the default one
+        const defaultSettings: Settings = {
+            id: 1,
+            title: '英语全科启蒙网站导航',
+            logo: 'https://pic1.imgdb.cn/item/6817c79a58cb8da5c8dc723f.png',
+            copyright: '© 2024 英语全科启蒙. All Rights Reserved.',
+            searchEnabled: true,
+        };
+         try {
+            await db.insert(schema.settings).values(defaultSettings);
+            return defaultSettings;
+        } catch (error) {
+            // In a race condition, another request might have created it. Try fetching again.
+            settingsResult = await db.select().from(schema.settings).where(eq(schema.settings.id, 1));
+            if(settingsResult.length > 0) {
+                return settingsResult[0];
+            }
+            console.error("Failed to create or get default settings", error);
+            // Return default object as a fallback to prevent site crash
+            return defaultSettings;
+        }
+    }
+    return settingsResult[0];
+}
 
-
-// Helper function to read data from the JSON file
-const readData = async (): Promise<AppData> => {
-  try {
-    const fileContent = await fs.readFile(dataPath, "utf-8");
-    return JSON.parse(fileContent);
-  } catch (error) {
-    console.error("Error reading data file:", error);
-    // Return default structure if file doesn't exist or is corrupted
-    return {
-      settings: {
-        id: 1,
-        title: "Erin导航",
-        logo: "https://pic1.imgdb.cn/item/6817c79a58cb8da5c8dc723f.png",
-        copyright: "© 2024 英语全科启蒙. All Rights Reserved.",
-        searchEnabled: true,
-      },
-      categories: [],
-      adminPasswordHash: "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8" // default: 'password'
-    };
-  }
-};
 
 export const getSettings = async (): Promise<Settings> => {
-  const data = await readData();
-  return data.settings;
+    try {
+        const settings = await getOrCreateDefaultSettings();
+        return settings;
+    } catch (error) {
+        console.error("Database error fetching settings:", error);
+        // Fallback to default settings if DB fails
+        return {
+            id: 1,
+            title: 'Erin导航',
+            logo: 'https://pic1.imgdb.cn/item/6817c79a58cb8da5c8dc723f.png',
+            copyright: '© 2024 英语全科启蒙. All Rights Reserved.',
+            searchEnabled: true,
+        };
+    }
 };
 
 export const getCategories = async (): Promise<Category[]> => {
-  const data = await readData();
-  // Ensure links are associated with categories
-  const categories = data.categories.map(category => ({
-    ...category,
-    links: category.links || []
-  }));
-  return categories;
-};
-
-export const getAdminPasswordHash = async (): Promise<string> => {
-  const data = await readData();
-  return data.adminPasswordHash;
+    try {
+        const categoriesResult = await db.query.categories.findMany({
+            with: {
+                links: true,
+            },
+        });
+        return categoriesResult;
+    } catch (error) {
+        console.error("Database error fetching categories:", error);
+        return []; // Return empty array on DB error
+    }
 };

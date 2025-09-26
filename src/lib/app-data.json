@@ -2,7 +2,7 @@
   "settings": {
     "title": "HELLO",
     "logo": "https://pic1.imgdb.cn/item/6817c79a58cb8da5c8dc723f.png",
-    "copyright": "© 2024 英语全科启蒙. All Rights Reserved.",
+    "copyright": "© 2025 英语全科启蒙. All Rights Reserved.",
     "searchEnabled": true
   },
   "categories": [
@@ -80,33 +80,6 @@
           "url": "https://icons8.com",
           "description": "海量免费图标和插图",
           "categoryId": "cat-2"
-        }
-      ]
-    },
-    {
-      "id": "cat-3",
-      "name": "开发者社区",
-      "links": [
-        {
-          "id": "link-3-1",
-          "name": "Stack Overflow",
-          "url": "https://stackoverflow.com",
-          "description": "程序员问答社区",
-          "categoryId": "cat-3"
-        },
-        {
-          "id": "link-3-2",
-          "name": "Medium",
-          "url": "https://medium.com",
-          "description": "技术文章和博客平台",
-          "categoryId": "cat-3"
-        },
-        {
-          "id": "link-3-3",
-          "name": "Dev.to",
-          "url": "https://dev.to",
-          "description": "开发者交流社区",
-          "categoryId": "cat-3"
         }
       ]
     }

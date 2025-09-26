@@ -3,7 +3,7 @@ export type LinkItem = {
   name: string;
   url: string;
   description: string;
-  logoUrl?: string | null; // Allow null
+  logoUrl?: string | null;
   categoryId: string;
 };
 
@@ -21,6 +21,8 @@ export type Settings = {
   searchEnabled: boolean;
 };
 
+// This type is no longer used for database operations
+// but can be kept for reference or other purposes.
 export type AppData = {
   settings: Settings;
   categories: Category[];
