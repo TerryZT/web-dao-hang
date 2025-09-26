@@ -71,20 +71,21 @@ body {
   }
 }
 
-@layer components {
-    .gradient-border-bg {
-        position: relative;
-        background: hsl(var(--card));
-        background-clip: padding-box;
-        border: solid 1px transparent;
+@layer utilities {
+    .animate-gradient {
+      background-size: 200% 200%;
+      animation: gradient-animation 5s ease infinite;
     }
-    .gradient-border-bg:before {
-        content: '';
-        position: absolute;
-        top: 0; right: 0; bottom: 0; left: 0;
-        z-index: -1;
-        margin: -1px;
-        border-radius: inherit;
-        background: linear-gradient(to right, #6EE7B7, #3B82F6, #9333EA);
+
+    @keyframes gradient-animation {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
     }
 }

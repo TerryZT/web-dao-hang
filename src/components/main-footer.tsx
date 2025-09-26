@@ -7,9 +7,6 @@ export function MainFooter({ settings }: { settings: Settings }) {
       <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
         <p>
           {settings.copyright}
-          <Link href="/admin" className="ml-4 opacity-50 hover:opacity-100 transition-opacity">
-            后台管理
-          </Link>
         </p>
       </div>
     </footer>

@@ -28,19 +28,15 @@ export function LinkGrid({ categories }: { categories: Category[] }) {
 
   return (
     <div className="space-y-12">
-      <div className="relative max-w-2xl mx-auto">
-        <div className="gradient-border-bg rounded-full p-px">
-          <div className="relative">
-            <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
-            <Input
-              type="search"
-              placeholder="探索..."
-              className="w-full pl-14 pr-6 py-8 text-xl rounded-full shadow-lg border-0 bg-card focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
+      <div className="relative max-w-lg mx-auto mt-8">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
+        <Input
+          type="search"
+          placeholder="搜索..."
+          className="w-full pl-12 pr-4 py-6 text-base rounded-lg shadow-sm bg-card/80 backdrop-blur-sm border-border/50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
       
       {filteredCategories.length > 0 ? (
