@@ -140,7 +140,6 @@ export async function addCategory(name: string) {
   };
   categories.push(newCategory);
   await updateCategories(categories);
-  revalidatePath("/admin");
   revalidatePath("/");
 }
 
@@ -150,7 +149,6 @@ export async function updateCategory(id: string, newName: string) {
   if (category) {
     category.name = newName;
     await updateCategories(categories);
-    revalidatePath("/admin");
     revalidatePath("/");
   }
 }
@@ -159,7 +157,6 @@ export async function deleteCategory(id: string) {
   let categories = await getCategories();
   categories = categories.filter((c) => c.id !== id);
   await updateCategories(categories);
-  revalidatePath("/admin");
   revalidatePath("/");
 }
 
@@ -171,7 +168,6 @@ export async function addLink(categoryId: string, linkData: Omit<LinkItem, "id">
     const newLink: LinkItem = { ...linkData, id: `link-${Date.now()}` };
     category.links.push(newLink);
     await updateCategories(categories);
-    revalidatePath("/admin");
     revalidatePath("/");
   }
 }
@@ -183,7 +179,6 @@ export async function updateLink(linkId: string, linkData: Omit<LinkItem, "id">)
     if (linkIndex !== -1) {
       category.links[linkIndex] = { ...linkData, id: linkId };
       await updateCategories(categories);
-      revalidatePath("/admin");
       revalidatePath("/");
       return;
     }
@@ -196,6 +191,5 @@ export async function deleteLink(linkId: string) {
     category.links = category.links.filter((l) => l.id !== linkId);
   }
   await updateCategories(categories);
-  revalidatePath("/admin");
   revalidatePath("/");
 }

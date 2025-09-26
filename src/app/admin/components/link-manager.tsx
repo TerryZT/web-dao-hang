@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useOptimistic } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -67,6 +67,35 @@ const linkSchema = z.object({
 type LinkFormData = z.infer<typeof linkSchema>;
 
 export function LinkManager({ initialCategories }: { initialCategories: Category[] }) {
+    const [categories, setCategories] = useState<Category[]>(initialCategories);
+    const [optimisticCategories, setOptimisticCategories] = useOptimistic(
+        categories,
+        (state, { action, payload }) => {
+            switch (action) {
+                case 'addCategory':
+                    return [...state, payload];
+                case 'updateCategory':
+                    return state.map(c => c.id === payload.id ? { ...c, name: payload.name } : c);
+                case 'deleteCategory':
+                    return state.filter(c => c.id !== payload.id);
+                case 'addLink':
+                    return state.map(c => c.id === payload.categoryId ? { ...c, links: [...c.links, payload.link] } : c);
+                case 'updateLink':
+                    return state.map(c => ({
+                        ...c,
+                        links: c.links.map(l => l.id === payload.link.id ? payload.link : l)
+                    }));
+                case 'deleteLink':
+                     return state.map(c => ({
+                        ...c,
+                        links: c.links.filter(l => l.id !== payload.linkId)
+                    }));
+                default:
+                    return state;
+            }
+        }
+    );
+
   const [openDialog, setOpenDialog] = useState<
     | { type: "add-cat" }
     | { type: "edit-cat"; category: Category }
@@ -98,10 +127,15 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
     if (!openDialog) return;
     try {
         if(openDialog.type === "add-cat") {
+            const newCategory = { id: `cat-${Date.now()}`, name: data.name, links: [] };
+            setOptimisticCategories({ action: 'addCategory', payload: newCategory });
             await addCategory(data.name);
+            setCategories(cats => [...cats, newCategory]);
             toast({ title: "成功", description: "分类已添加" });
         } else if (openDialog.type === "edit-cat") {
+            setOptimisticCategories({ action: 'updateCategory', payload: { id: openDialog.category.id, name: data.name } });
             await updateCategory(openDialog.category.id, data.name);
+            setCategories(cats => cats.map(c => c.id === openDialog.category.id ? { ...c, name: data.name } : c));
             toast({ title: "成功", description: "分类已更新" });
         }
         setOpenDialog(null);
@@ -109,21 +143,41 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
         toast({ title: "错误", description: "操作失败", variant: "destructive" });
     }
   };
+  
+  const handleDeleteCategory = async (categoryId: string) => {
+    setOptimisticCategories({ action: 'deleteCategory', payload: { id: categoryId } });
+    await deleteCategory(categoryId);
+    setCategories(cats => cats.filter(c => c.id !== categoryId));
+    toast({ title: "成功", description: "分类已删除" });
+  };
 
   const handleLinkSubmit = async (data: LinkFormData) => {
     if (!openDialog) return;
     try {
         if (openDialog.type === "add-link") {
+            const newLink = { ...data, id: `link-${Date.now()}` };
+            setOptimisticCategories({ action: 'addLink', payload: { categoryId: openDialog.categoryId, link: newLink } });
             await addLink(openDialog.categoryId, data);
+            setCategories(cats => cats.map(c => c.id === openDialog.categoryId ? { ...c, links: [...c.links, newLink] } : c));
             toast({ title: "成功", description: "链接已添加" });
         } else if (openDialog.type === "edit-link") {
+            const updatedLink = { ...data, id: openDialog.link.id };
+            setOptimisticCategories({ action: 'updateLink', payload: { link: updatedLink } });
             await updateLink(openDialog.link.id, data);
+            setCategories(cats => cats.map(c => ({...c, links: c.links.map(l => l.id === updatedLink.id ? updatedLink : l)})));
             toast({ title: "成功", description: "链接已更新" });
         }
         setOpenDialog(null);
     } catch {
         toast({ title: "错误", description: "操作失败", variant: "destructive" });
     }
+  };
+  
+   const handleDeleteLink = async (linkId: string) => {
+    setOptimisticCategories({ action: 'deleteLink', payload: { linkId } });
+    await deleteLink(linkId);
+    setCategories(cats => cats.map(c => ({...c, links: c.links.filter(l => l.id !== linkId)})));
+    toast({ title: "成功", description: "链接已删除" });
   };
 
   return (
@@ -138,7 +192,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
       </CardHeader>
       <CardContent>
         <Accordion type="multiple" className="w-full space-y-4">
-          {initialCategories.map((category) => (
+          {optimisticCategories.map((category) => (
             <AccordionItem value={category.id} key={category.id} className="border-b-0 rounded-lg border bg-background">
               <AccordionTrigger className="px-4 hover:no-underline">
                 <div className="flex items-center gap-2">
@@ -170,12 +224,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>取消</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={async () => {
-                            await deleteCategory(category.id);
-                            toast({ title: "成功", description: "分类已删除" });
-                          }}
-                        >
+                        <AlertDialogAction onClick={() => handleDeleteCategory(category.id)}>
                           确认
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -227,10 +276,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>取消</AlertDialogCancel>
-                                    <AlertDialogAction onClick={async () => {
-                                        await deleteLink(link.id)
-                                        toast({ title: "成功", description: "链接已删除" });
-                                    }}>
+                                    <AlertDialogAction onClick={() => handleDeleteLink(link.id)}>
                                     确认
                                     </AlertDialogAction>
                                 </AlertDialogFooter>
@@ -250,7 +296,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
           ))}
         </Accordion>
         
-        {initialCategories.length === 0 && (
+        {optimisticCategories.length === 0 && (
             <div className="text-center py-16 border rounded-lg">
                 <p className="text-muted-foreground">还没有任何分类。</p>
                 <Button className="mt-4" onClick={() => setOpenDialog({ type: "add-cat" })}>
