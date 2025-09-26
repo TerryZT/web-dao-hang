@@ -54,14 +54,12 @@ export function LinkGrid({ categories }: { categories: Category[] }) {
                       key={link.id}
                     >
                       <Card className="h-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-in-out bg-card/50 backdrop-blur-sm">
-                        <CardContent className="p-5 flex flex-col items-center justify-start text-center h-full">
-                            <div className="w-16 h-16 mb-4 relative">
+                        <CardContent className="p-5 flex flex-col items-center justify-center text-center h-full">
+                            <div className="w-full h-24 mb-4 relative flex items-center justify-center">
                                 {link.logoUrl ? (
                                     <Image src={link.logoUrl} alt={`${link.name} logo`} layout="fill" className="object-contain" />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                      <Globe className="h-7 w-7 text-muted-foreground"/>
-                                    </div>
+                                    <Globe className="h-12 w-12 text-muted-foreground"/>
                                 )}
                             </div>
                             <div className="flex flex-col">
