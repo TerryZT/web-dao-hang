@@ -67,9 +67,8 @@ const settingsSchema = z.object({
 });
 
 export async function saveSettings(
-  prevState: { message: string, type: 'success' | 'error' } | undefined,
   formData: FormData
-) {
+): Promise<{ message: string, type: 'success' | 'error' } | undefined> {
    const validatedFields = settingsSchema.safeParse(
     Object.fromEntries(formData.entries())
   );
@@ -82,8 +81,8 @@ export async function saveSettings(
 
   try {
     await updateSettings(validatedFields.data);
-    revalidatePath("/admin");
-    revalidatePath("/");
+    revalidatePath('/');
+    revalidatePath('/admin');
     return { message: "设置已成功保存！", type: 'success' };
   } catch (e) {
     return { message: "保存设置失败。", type: 'error' };
