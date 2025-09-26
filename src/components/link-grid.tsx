@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import type { Category, LinkItem } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, Globe } from "lucide-react";
+import { Globe } from "lucide-react";
 
 export function LinkGrid({ categories }: { categories: Category[] }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -28,12 +28,11 @@ export function LinkGrid({ categories }: { categories: Category[] }) {
 
   return (
     <div className="space-y-12">
-      <div className="relative max-w-lg mx-auto mb-8">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
+      <div className="relative max-w-lg mx-auto mt-6">
         <Input
           type="search"
           placeholder="搜索..."
-          className="w-full pl-12 pr-4 py-6 text-base rounded-lg shadow-sm bg-card/80 backdrop-blur-sm border-border/50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="w-full pl-4 pr-4 py-6 text-base rounded-lg shadow-sm bg-white focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
