@@ -106,6 +106,7 @@ export async function changePassword(
     await writeData(data);
     return { message: '密码修改成功！', type: 'success' };
   } catch (e) {
-    return { message: '密码修改失败。', type: 'error' };
+    const error = e as Error;
+    return { message: `密码修改失败: ${error.message}`, type: 'error' };
   }
 }

@@ -19,11 +19,11 @@ const readData = async (): Promise<AppData> => {
     return JSON.parse(fileContent);
   } catch (error) {
     // If file doesn't exist or is empty, create it with default data
-    if (error.code === 'ENOENT' || error.message.includes('Unexpected end of JSON input')) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT' || error instanceof SyntaxError) {
       const defaultData: AppData = {
         settings: {
           id: 1,
-          title: 'Erin导航',
+          title: '英语全科启蒙网站导航',
           logo: 'https://pic1.imgdb.cn/item/6817c79a58cb8da5c8dc723f.png',
           copyright: '© 2024 英语全科启蒙. All Rights Reserved.',
           searchEnabled: true,
@@ -50,6 +50,8 @@ const writeData = async (data: AppData): Promise<void> => {
   }
 };
 
+// --- Auth Actions ---
+
 function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
@@ -57,7 +59,7 @@ function hashPassword(password: string): string {
 export async function login(
   prevState: any,
   formData: FormData
-): Promise<{ error?: string; success?: boolean }> {
+): Promise<{ error?: string }> {
   const password = formData.get('password') as string;
 
   if (!password) {
@@ -86,145 +88,32 @@ export async function logout() {
   redirect('/admin/login');
 }
 
-const settingsSchema = z.object({
-  title: z.string().min(1, '网站标题不能为空'),
-  logo: z.string().url('请输入有效的图片URL').or(z.literal('')),
-  copyright: z.string().min(1, '版权信息不能为空'),
-  searchEnabled: z.preprocess(val => val === 'on', z.boolean()),
-});
+// --- Data Actions ---
 
-export async function saveSettings(
-  formData: FormData
-): Promise<{ message: string; type: 'success' | 'error' }> {
-  const validatedFields = settingsSchema.safeParse(
-    Object.fromEntries(formData.entries())
-  );
-  if (!validatedFields.success) {
-    return {
-      message: validatedFields.error.errors[0].message,
-      type: 'error',
-    };
-  }
-
-  try {
-    const data = await readData();
-    data.settings = { ...data.settings, ...validatedFields.data };
-    await writeData(data);
-    return { message: '设置已成功保存！', type: 'success' };
-  } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : '保存设置失败。';
-    return { message: errorMessage, type: 'error' };
-  }
-}
-
-const passwordSchema = z
-  .object({
-    currentPassword: z.string(),
-    newPassword: z.string().min(6, '新密码至少需要6个字符'),
-    confirmPassword: z.string(),
-  })
-  .refine(data => data.newPassword === data.confirmPassword, {
-    message: '新密码和确认密码不匹配',
-    path: ['confirmPassword'],
-  });
-
-export async function changePassword(
-  prevState: any,
-  formData: FormData
-): Promise<{ message: string; type: 'success' | 'error' }> {
-  const validatedFields = passwordSchema.safeParse(
-    Object.fromEntries(formData.entries())
-  );
-
-  if (!validatedFields.success) {
-    return { message: validatedFields.error.errors[0].message, type: 'error' };
-  }
-
-  const { currentPassword, newPassword } = validatedFields.data;
-
-  const data = await readData();
-  const storedHash = data.adminPasswordHash;
-  const currentHash = hashPassword(currentPassword);
-
-  if (currentHash !== storedHash) {
-    return { message: '当前密码不正确。', type: 'error' };
-  }
-
-  try {
-    const newHash = hashPassword(newPassword);
-    data.adminPasswordHash = newHash;
-    await writeData(data);
-    return { message: '密码修改成功！', type: 'success' };
-  } catch (e) {
-    return { message: '密码修改失败。', type: 'error' };
-  }
-}
-
-// Category Actions
-export async function addCategory(name: string) {
-  const data = await readData();
-  const newCategory: Category = {
-    id: `cat-${Date.now()}`,
-    name,
-    links: [],
-  };
-  data.categories.push(newCategory);
-  await writeData(data);
-}
-
-export async function updateCategory(id: string, newName: string) {
-  const data = await readData();
-  const category = data.categories.find(c => c.id === id);
-  if (category) {
-    category.name = newName;
-    await writeData(data);
-  }
-}
-
-export async function deleteCategory(id: string) {
-  const data = await readData();
-  data.categories = data.categories.filter(c => c.id !== id);
-  await writeData(data);
-}
-
-// Link Actions
-export async function addLink(
-  categoryId: string,
-  linkData: Omit<LinkItem, 'id' | 'categoryId'>
-) {
-  const data = await readData();
-  const category = data.categories.find(c => c.id === categoryId);
-  if (category) {
-    const newLink: LinkItem = { ...linkData, id: `link-${Date.now()}`, categoryId };
-    if (!category.links) {
-      category.links = [];
+export async function saveAllCategories(categories: Category[]) {
+    try {
+        const data = await readData();
+        data.categories = categories;
+        await writeData(data);
+        revalidatePath('/');
+        revalidatePath('/admin');
+        return { success: true };
+    } catch(e) {
+        const error = e as Error;
+        return { error: error.message };
     }
-    category.links.push(newLink);
-    await writeData(data);
-  }
 }
 
-export async function updateLink(
-  linkId: string,
-  linkData: Omit<LinkItem, 'id' | 'categoryId'>
-) {
-  const data = await readData();
-  for (const category of data.categories) {
-    const linkIndex = category.links.findIndex(l => l.id === linkId);
-    if (linkIndex !== -1) {
-      category.links[linkIndex] = { ...category.links[linkIndex], ...linkData };
-      await writeData(data);
-      return;
+export async function saveSettings(settings: Settings) {
+    try {
+        const data = await readData();
+        data.settings = settings;
+        await writeData(data);
+        revalidatePath('/');
+        revalidatePath('/admin');
+        return { success: true };
+    } catch(e) {
+        const error = e as Error;
+        return { error: error.message };
     }
-  }
-}
-
-export async function deleteLink(linkId: string) {
-  const data = await readData();
-  data.categories.forEach(category => {
-    if (category.links) {
-        category.links = category.links.filter(l => l.id !== linkId);
-    }
-  });
-  await writeData(data);
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useReducer } from "react";
+import React, { useState, useReducer, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import type { Settings } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { changePassword } from "@/lib/actions-auth";
+import { saveSettings } from "@/lib/actions";
 
 function SubmitButton({ isPending, text, pendingText }: { isPending: boolean, text: string, pendingText: string }) {
   return (
@@ -19,9 +21,10 @@ function SubmitButton({ isPending, text, pendingText }: { isPending: boolean, te
 }
 
 export function SettingsManager({ initialSettings }: { initialSettings: Settings }) {
+  const router = useRouter();
   const { toast } = useToast();
   const [settings, setSettings] = useState(initialSettings);
-  const [isSettingsPending, setIsSettingsPending] = useState(false);
+  const [isSettingsPending, startSettingsTransition] = useTransition();
   const [isPasswordPending, setIsPasswordPending] = useState(false);
 
   const [passwordFormState, passwordFormAction] = useReducer(
@@ -59,15 +62,15 @@ export function SettingsManager({ initialSettings }: { initialSettings: Settings
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSettingsPending(true);
-    // Simulate async operation
-    setTimeout(() => {
-        toast({
-            title: "提示",
-            description: "操作已在本地应用。刷新页面将重置所有更改。",
-        });
-        setIsSettingsPending(false);
-    }, 500);
+    startSettingsTransition(async () => {
+        const result = await saveSettings(settings);
+        if (result?.error) {
+            toast({ title: "错误", description: `保存失败: ${result.error}`, variant: "destructive" });
+        } else {
+            toast({ title: "成功", description: "网站设置已成功保存！" });
+            router.refresh();
+        }
+    });
   };
 
   return (
@@ -78,17 +81,13 @@ export function SettingsManager({ initialSettings }: { initialSettings: Settings
           <CardDescription>管理网站的基本信息和功能。</CardDescription>
         </CardHeader>
         <CardContent>
-           <div className="mb-4 p-3 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 rounded-md">
-                <p className="font-bold">注意：</p>
-                <p>设置更改仅在当前会话中有效，刷新页面后将重置。</p>
-            </div>
           <form onSubmit={handleSaveSettings} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="title">网站标题</Label>
               <Input id="title" name="title" value={settings.title} onChange={handleSettingsChange} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="logo">Logo 文本</Label>
+              <Label htmlFor="logo">Logo 图片地址</Label>
               <Input id="logo" name="logo" value={settings.logo} onChange={handleSettingsChange} />
             </div>
             <div className="space-y-2">
@@ -110,7 +109,7 @@ export function SettingsManager({ initialSettings }: { initialSettings: Settings
       <Card>
         <CardHeader>
           <CardTitle>修改密码</CardTitle>
-          <CardDescription>定期更换密码以确保账户安全。此操作会与服务器同步。</CardDescription>
+          <CardDescription>定期更换密码以确保账户安全。</CardDescription>
         </CardHeader>
         <CardContent>
           <form id="password-form" action={handlePasswordSubmit} className="space-y-6">

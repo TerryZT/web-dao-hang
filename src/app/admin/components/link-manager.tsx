@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useReducer } from "react";
+import { useState, useReducer, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import type { Category, LinkItem } from "@/lib/types";
+import { saveAllCategories } from "@/lib/actions";
 
 import {
   Accordion,
@@ -15,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -44,11 +45,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Edit, Trash, GripVertical, PlusCircle } from "lucide-react";
+import { Plus, Edit, Trash, GripVertical, PlusCircle, Save } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 
 type Action =
+  | { type: 'SET_STATE'; payload: Category[] }
   | { type: 'ADD_CATEGORY'; payload: { name: string } }
   | { type: 'UPDATE_CATEGORY'; payload: { id: string; name: string } }
   | { type: 'DELETE_CATEGORY'; payload: { id: string } }
@@ -58,6 +60,8 @@ type Action =
 
 function categoriesReducer(state: Category[], action: Action): Category[] {
   switch (action.type) {
+    case 'SET_STATE':
+        return action.payload;
     case 'ADD_CATEGORY':
       const newCategory: Category = {
         id: `cat-${Date.now()}`,
@@ -117,6 +121,8 @@ const linkSchema = z.object({
 type LinkFormData = z.infer<typeof linkSchema>;
 
 export function LinkManager({ initialCategories }: { initialCategories: Category[] }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [categories, dispatch] = useReducer(categoriesReducer, initialCategories);
   const [openDialog, setOpenDialog] = useState<
     | { type: "add-cat" }
@@ -133,8 +139,16 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
     formState: { errors },
   } = useForm<LinkFormData>();
   
-  const showToast = () => {
-      toast({ title: "提示", description: "操作已在本地应用。刷新页面将重置所有更改。" });
+  const handleSaveChanges = () => {
+    startTransition(async () => {
+        const result = await saveAllCategories(categories);
+        if (result?.error) {
+            toast({ title: "错误", description: `保存失败: ${result.error}`, variant: "destructive" });
+        } else {
+            toast({ title: "成功", description: "所有更改已成功保存到服务器！" });
+            router.refresh();
+        }
+    });
   }
 
   const handleOpenDialog = (dialog: NonNullable<typeof openDialog>) => {
@@ -145,7 +159,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
     setOpenDialog(dialog);
   };
   
-  const handleCategorySubmit = async (data: { name: string }) => {
+  const handleCategorySubmit = (data: { name: string }) => {
     if (!openDialog) return;
     
     if (openDialog.type === "add-cat") {
@@ -153,16 +167,14 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
     } else if (openDialog.type === "edit-cat") {
         dispatch({ type: 'UPDATE_CATEGORY', payload: { id: openDialog.category.id, name: data.name } });
     }
-    showToast();
     setOpenDialog(null);
   };
   
-  const handleDeleteCategory = async (categoryId: string) => {
+  const handleDeleteCategory = (categoryId: string) => {
      dispatch({ type: 'DELETE_CATEGORY', payload: { id: categoryId } });
-     showToast();
   };
 
-  const handleLinkSubmit = async (data: LinkFormData) => {
+  const handleLinkSubmit = (data: LinkFormData) => {
     if (!openDialog) return;
     
      if (openDialog.type === "add-link") {
@@ -170,13 +182,11 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
     } else if (openDialog.type === "edit-link") {
         dispatch({ type: 'UPDATE_LINK', payload: { linkId: openDialog.link.id, categoryId: openDialog.categoryId, linkData: data } });
     }
-    showToast();
     setOpenDialog(null);
   };
   
-   const handleDeleteLink = async (linkId: string, categoryId: string) => {
+   const handleDeleteLink = (linkId: string, categoryId: string) => {
     dispatch({ type: 'DELETE_LINK', payload: { linkId, categoryId } });
-    showToast();
   };
 
   return (
@@ -184,16 +194,18 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>分类和链接</CardTitle>
-          <Button onClick={() => setOpenDialog({ type: "add-cat" })}>
-            <PlusCircle className="mr-2 h-4 w-4" /> 添加分类
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={() => setOpenDialog({ type: "add-cat" })}>
+                <PlusCircle className="mr-2 h-4 w-4" /> 添加分类
+            </Button>
+            <Button onClick={handleSaveChanges} disabled={isPending}>
+                <Save className="mr-2 h-4 w-4" />
+                {isPending ? '保存中...' : '保存所有更改'}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="mb-4 p-3 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 rounded-md">
-            <p className="font-bold">注意：</p>
-            <p>所有更改仅在当前会话中有效，刷新页面后将重置。</p>
-        </div>
         <Accordion type="multiple" className="w-full space-y-4">
           {categories.map((category) => (
             <AccordionItem value={category.id} key={category.id} className="border-b-0 rounded-lg border bg-background">
@@ -222,7 +234,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                       <AlertDialogHeader>
                         <AlertDialogTitle>确认删除？</AlertDialogTitle>
                         <AlertDialogDescription>
-                          这将永久删除 “{category.name}” 分类及其所有链接。此操作无法撤销。
+                          这将永久删除 “{category.name}” 分类及其所有链接。此操作在点击“保存所有更改”后生效。
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -274,7 +286,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>确认删除？</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                    这将永久删除 “{link.name}” 链接。此操作无法撤销。
+                                    这将永久删除 “{link.name}” 链接。此操作在点击“保存所有更改”后生效。
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
