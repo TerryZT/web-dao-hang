@@ -1,7 +1,8 @@
 "use client";
 
-import { useReducer } from "react";
+import { useReducer, useEffect } from "react";
 import { useFormStatus } from "react-dom";
+import { useRouter } from "next/navigation";
 import { login } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,10 +20,14 @@ function SubmitButton() {
 }
 
 export default function LoginPage() {
-  const [state, formAction] = useReducer(
-    (_: any, formData: FormData) => login(_, formData),
-    undefined
-  );
+  const [state, formAction] = useReducer(login, undefined);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state?.success) {
+      router.push("/admin");
+    }
+  }, [state, router]);
 
   return (
     <main className="flex items-center justify-center min-h-screen bg-muted/40">

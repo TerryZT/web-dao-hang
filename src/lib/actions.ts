@@ -28,7 +28,7 @@ const loginSchema = z.object({
 export async function login(
   _: any,
   formData: FormData
-) {
+): Promise<{ error?: string; success?: boolean }> {
   const validatedFields = loginSchema.safeParse(
     Object.fromEntries(formData.entries())
   );
@@ -46,7 +46,7 @@ export async function login(
   if (inputHash === storedHash) {
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     cookies().set(sessionCookieName, "loggedIn", { expires, httpOnly: true });
-    redirect("/admin");
+    return { success: true };
   } else {
     return {
       error: "密码错误",
