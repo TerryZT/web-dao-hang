@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useReducer, useTransition } from "react";
+import { useState, useReducer, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -131,6 +131,10 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
     | { type: "edit-link"; link: LinkItem; categoryId: string }
     | null
   >(null);
+
+  useEffect(() => {
+    dispatch({ type: 'SET_STATE', payload: initialCategories });
+  }, [initialCategories]);
 
   const {
     register,
