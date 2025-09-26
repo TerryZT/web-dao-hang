@@ -11,10 +11,11 @@
       "name": "常用工具",
       "links": [
         {
-          "id": "link-1-1",
           "name": "Google",
           "url": "https://google.com",
-          "description": "全球最大的搜索引擎"
+          "description": "全球最大的搜索引擎",
+          "logoUrl": "",
+          "id": "link-1-1"
         },
         {
           "id": "link-1-2",

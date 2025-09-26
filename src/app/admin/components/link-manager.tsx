@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useOptimistic } from "react";
+import { useState, useOptimistic, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -67,6 +67,7 @@ const linkSchema = z.object({
 type LinkFormData = z.infer<typeof linkSchema>;
 
 export function LinkManager({ initialCategories }: { initialCategories: Category[] }) {
+    const [isPending, startTransition] = useTransition();
     const [categories, setCategories] = useState<Category[]>(initialCategories);
     const [optimisticCategories, setOptimisticCategories] = useOptimistic(
         categories,
@@ -125,59 +126,69 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
 
   const handleCategorySubmit = async (data: { name: string }) => {
     if (!openDialog) return;
-    try {
-        if(openDialog.type === "add-cat") {
-            const newCategory = { id: `cat-${Date.now()}`, name: data.name, links: [] };
-            setOptimisticCategories({ action: 'addCategory', payload: newCategory });
-            await addCategory(data.name);
-            setCategories(cats => [...cats, newCategory]);
-            toast({ title: "成功", description: "分类已添加" });
-        } else if (openDialog.type === "edit-cat") {
-            setOptimisticCategories({ action: 'updateCategory', payload: { id: openDialog.category.id, name: data.name } });
-            await updateCategory(openDialog.category.id, data.name);
-            setCategories(cats => cats.map(c => c.id === openDialog.category.id ? { ...c, name: data.name } : c));
-            toast({ title: "成功", description: "分类已更新" });
+    
+    startTransition(async () => {
+        try {
+            if(openDialog.type === "add-cat") {
+                const newCategory = { id: `cat-${Date.now()}`, name: data.name, links: [] };
+                setOptimisticCategories({ action: 'addCategory', payload: newCategory });
+                await addCategory(data.name);
+                setCategories(cats => [...cats, newCategory]);
+                toast({ title: "成功", description: "分类已添加" });
+            } else if (openDialog.type === "edit-cat") {
+                setOptimisticCategories({ action: 'updateCategory', payload: { id: openDialog.category.id, name: data.name } });
+                await updateCategory(openDialog.category.id, data.name);
+                setCategories(cats => cats.map(c => c.id === openDialog.category.id ? { ...c, name: data.name } : c));
+                toast({ title: "成功", description: "分类已更新" });
+            }
+            setOpenDialog(null);
+        } catch {
+            toast({ title: "错误", description: "操作失败", variant: "destructive" });
         }
-        setOpenDialog(null);
-    } catch {
-        toast({ title: "错误", description: "操作失败", variant: "destructive" });
-    }
+    });
   };
   
   const handleDeleteCategory = async (categoryId: string) => {
-    setOptimisticCategories({ action: 'deleteCategory', payload: { id: categoryId } });
-    await deleteCategory(categoryId);
-    setCategories(cats => cats.filter(c => c.id !== categoryId));
-    toast({ title: "成功", description: "分类已删除" });
+    startTransition(async () => {
+        setOptimisticCategories({ action: 'deleteCategory', payload: { id: categoryId } });
+        await deleteCategory(categoryId);
+        setCategories(cats => cats.filter(c => c.id !== categoryId));
+        toast({ title: "成功", description: "分类已删除" });
+    });
   };
 
   const handleLinkSubmit = async (data: LinkFormData) => {
     if (!openDialog) return;
-    try {
-        if (openDialog.type === "add-link") {
-            const newLink = { ...data, id: `link-${Date.now()}` };
-            setOptimisticCategories({ action: 'addLink', payload: { categoryId: openDialog.categoryId, link: newLink } });
-            await addLink(openDialog.categoryId, data);
-            setCategories(cats => cats.map(c => c.id === openDialog.categoryId ? { ...c, links: [...c.links, newLink] } : c));
-            toast({ title: "成功", description: "链接已添加" });
-        } else if (openDialog.type === "edit-link") {
-            const updatedLink = { ...data, id: openDialog.link.id };
-            setOptimisticCategories({ action: 'updateLink', payload: { link: updatedLink } });
-            await updateLink(openDialog.link.id, data);
-            setCategories(cats => cats.map(c => ({...c, links: c.links.map(l => l.id === updatedLink.id ? updatedLink : l)})));
-            toast({ title: "成功", description: "链接已更新" });
+    
+    startTransition(async () => {
+        try {
+            if (openDialog.type === "add-link") {
+                const newLink = { ...data, id: `link-${Date.now()}` };
+                setOptimisticCategories({ action: 'addLink', payload: { categoryId: openDialog.categoryId, link: newLink } });
+                await addLink(openDialog.categoryId, data);
+                setCategories(cats => cats.map(c => c.id === openDialog.categoryId ? { ...c, links: [...c.links, newLink] } : c));
+                toast({ title: "成功", description: "链接已添加" });
+            } else if (openDialog.type === "edit-link") {
+                const updatedLink = { ...data, id: openDialog.link.id };
+                setOptimisticCategories({ action: 'updateLink', payload: { link: updatedLink } });
+                await updateLink(openDialog.link.id, data);
+                setCategories(cats => cats.map(c => ({...c, links: c.links.map(l => l.id === updatedLink.id ? updatedLink : l)})));
+                toast({ title: "成功", description: "链接已更新" });
+            }
+            setOpenDialog(null);
+        } catch {
+            toast({ title: "错误", description: "操作失败", variant: "destructive" });
         }
-        setOpenDialog(null);
-    } catch {
-        toast({ title: "错误", description: "操作失败", variant: "destructive" });
-    }
+    });
   };
   
    const handleDeleteLink = async (linkId: string) => {
-    setOptimisticCategories({ action: 'deleteLink', payload: { linkId } });
-    await deleteLink(linkId);
-    setCategories(cats => cats.map(c => ({...c, links: c.links.filter(l => l.id !== linkId)})));
-    toast({ title: "成功", description: "链接已删除" });
+    startTransition(async () => {
+        setOptimisticCategories({ action: 'deleteLink', payload: { linkId } });
+        await deleteLink(linkId);
+        setCategories(cats => cats.map(c => ({...c, links: c.links.filter(l => l.id !== linkId)})));
+        toast({ title: "成功", description: "链接已删除" });
+    });
   };
 
   return (
