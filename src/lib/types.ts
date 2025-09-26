@@ -21,7 +21,8 @@ export type Settings = {
   searchEnabled: boolean;
 };
 
-export type AdminConfig = {
-    id: number;
-    adminPasswordHash: string;
-}
+export type AppData = {
+  settings: Settings;
+  categories: Category[];
+  adminPasswordHash: string;
+};
