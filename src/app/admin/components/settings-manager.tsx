@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useTransition } from "react";
+import { useEffect, useTransition, useActionState } from "react";
 import { useRouter } from "next/navigation";
 import type { Settings } from "@/lib/types";
 import { saveSettings, changePassword } from "@/lib/actions";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { useFormStatus, useFormState } from "react-dom";
+import { useFormStatus } from "react-dom";
 
 function SettingsSubmitButton() {
   const { pending } = useFormStatus();
@@ -35,7 +35,7 @@ export function SettingsManager({ initialSettings }: { initialSettings: Settings
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const [passwordState, passwordFormAction] = useFormState(changePassword, undefined);
+  const [passwordState, passwordFormAction] = useActionState(changePassword, undefined);
 
   useEffect(() => {
     if (passwordState?.message) {
