@@ -1,7 +1,7 @@
 "use client";
 
-import { useReducer, useEffect } from "react";
-import { useFormStatus } from "react-dom";
+import { useEffect } from "react";
+import { useFormState, useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ function SubmitButton() {
 }
 
 export default function LoginPage() {
-  const [state, formAction] = useReducer(login, undefined);
+  const [state, formAction] = useFormState(login, undefined);
   const router = useRouter();
 
   useEffect(() => {
