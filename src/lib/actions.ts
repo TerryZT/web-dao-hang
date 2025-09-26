@@ -9,8 +9,13 @@ import {
   getCategories,
   getSettings,
   updateAdminPassword,
-  updateCategories,
   updateSettings,
+  addCategoryDb,
+  updateCategoryDb,
+  deleteCategoryDb,
+  addLinkDb,
+  updateLinkDb,
+  deleteLinkDb,
 } from "./data";
 import type { Category, LinkItem, Settings } from "./types";
 import crypto from "crypto";
@@ -26,7 +31,7 @@ const loginSchema = z.object({
 });
 
 export async function login(
-  _: any,
+  prevState: any,
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
   const validatedFields = loginSchema.safeParse(
@@ -131,70 +136,43 @@ export async function changePassword(
 
 // Category Actions
 export async function addCategory(name: string) {
-  const categories = await getCategories();
-  const newCategory: Category = {
+  const newCategory = {
     id: `cat-${Date.now()}`,
     name,
-    links: [],
   };
-  categories.push(newCategory);
-  await updateCategories(categories);
+  await addCategoryDb(newCategory);
   revalidatePath("/");
   revalidatePath("/admin");
 }
 
 export async function updateCategory(id: string, newName: string) {
-  const categories = await getCategories();
-  const category = categories.find((c) => c.id === id);
-  if (category) {
-    category.name = newName;
-    await updateCategories(categories);
-    revalidatePath("/");
-    revalidatePath("/admin");
-  }
+  await updateCategoryDb(id, newName);
+  revalidatePath("/");
+  revalidatePath("/admin");
 }
 
 export async function deleteCategory(id: string) {
-  let categories = await getCategories();
-  categories = categories.filter((c) => c.id !== id);
-  await updateCategories(categories);
+  await deleteCategoryDb(id);
   revalidatePath("/");
   revalidatePath("/admin");
 }
 
 // Link Actions
 export async function addLink(categoryId: string, linkData: Omit<LinkItem, "id">) {
-  const categories = await getCategories();
-  const category = categories.find((c) => c.id === categoryId);
-  if (category) {
-    const newLink: LinkItem = { ...linkData, id: `link-${Date.now()}` };
-    category.links.push(newLink);
-    await updateCategories(categories);
-    revalidatePath("/");
-    revalidatePath("/admin");
-  }
+  const newLink: LinkItem = { ...linkData, id: `link-${Date.now()}`, categoryId };
+  await addLinkDb(newLink);
+  revalidatePath("/");
+  revalidatePath("/admin");
 }
 
 export async function updateLink(linkId: string, linkData: Omit<LinkItem, "id">) {
-  const categories = await getCategories();
-  for (const category of categories) {
-    const linkIndex = category.links.findIndex((l) => l.id === linkId);
-    if (linkIndex !== -1) {
-      category.links[linkIndex] = { ...linkData, id: linkId };
-      await updateCategories(categories);
-      revalidatePath("/");
-      revalidatePath("/admin");
-      return;
-    }
-  }
+  await updateLinkDb(linkId, linkData);
+  revalidatePath("/");
+  revalidatePath("/admin");
 }
 
 export async function deleteLink(linkId: string) {
-  const categories = await getCategories();
-  for (const category of categories) {
-    category.links = category.links.filter((l) => l.id !== linkId);
-  }
-  await updateCategories(categories);
+  await deleteLinkDb(linkId);
   revalidatePath("/");
   revalidatePath("/admin");
 }
