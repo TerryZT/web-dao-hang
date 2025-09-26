@@ -1,7 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
-import { useEffect } from "react";
+import { useActionState, useEffect, useTransition } from "react";
 import type { Settings } from "@/lib/types";
 import { saveSettings, changePassword } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
@@ -14,18 +13,22 @@ import { Separator } from "@/components/ui/separator";
 
 export function SettingsManager({ initialSettings }: { initialSettings: Settings }) {
   const { toast } = useToast();
-  const [settingsState, settingsFormAction] = useActionState(saveSettings, undefined);
-  const [passwordState, passwordFormAction] = useActionState(changePassword, undefined);
+  const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
-    if (settingsState?.message) {
-      toast({
-        title: settingsState.type === 'success' ? "成功" : "错误",
-        description: settingsState.message,
-        variant: settingsState.type === 'error' ? "destructive" : "default",
-      });
-    }
-  }, [settingsState, toast]);
+  const handleSaveSettings = (formData: FormData) => {
+    startTransition(async () => {
+      const result = await saveSettings(undefined, formData);
+      if (result?.message) {
+        toast({
+          title: result.type === 'success' ? "成功" : "错误",
+          description: result.message,
+          variant: result.type === 'error' ? "destructive" : "default",
+        });
+      }
+    });
+  };
+
+  const [passwordState, passwordFormAction] = useActionState(changePassword, undefined);
 
   useEffect(() => {
     if (passwordState?.message) {
@@ -48,7 +51,7 @@ export function SettingsManager({ initialSettings }: { initialSettings: Settings
           <CardDescription>管理网站的基本信息和功能。</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={settingsFormAction} className="space-y-6">
+          <form action={handleSaveSettings} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="title">网站标题</Label>
               <Input id="title" name="title" defaultValue={initialSettings.title} />
@@ -68,7 +71,7 @@ export function SettingsManager({ initialSettings }: { initialSettings: Settings
                 </div>
                 <Switch id="searchEnabled" name="searchEnabled" defaultChecked={initialSettings.searchEnabled} />
             </div>
-            <Button type="submit">保存设置</Button>
+            <Button type="submit" disabled={isPending}>{isPending ? "保存中..." : "保存设置"}</Button>
           </form>
         </CardContent>
       </Card>
