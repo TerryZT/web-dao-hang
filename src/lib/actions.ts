@@ -26,7 +26,7 @@ const loginSchema = z.object({
 });
 
 export async function login(
-  prevState: { error: string } | undefined,
+  _: any,
   formData: FormData
 ) {
   const validatedFields = loginSchema.safeParse(
