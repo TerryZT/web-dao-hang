@@ -6,8 +6,6 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
   getAdminPasswordHash,
-  getCategories,
-  getSettings,
   updateAdminPassword,
   updateSettings,
   addCategoryDb,
@@ -17,7 +15,7 @@ import {
   updateLinkDb,
   deleteLinkDb,
 } from "./data";
-import type { Category, LinkItem, Settings } from "./types";
+import type { LinkItem } from "./types";
 import crypto from "crypto";
 
 const sessionCookieName = "erin-nav-session";
@@ -158,14 +156,14 @@ export async function deleteCategory(id: string) {
 }
 
 // Link Actions
-export async function addLink(categoryId: string, linkData: Omit<LinkItem, "id">) {
+export async function addLink(categoryId: string, linkData: Omit<LinkItem, "id" | "categoryId">) {
   const newLink: LinkItem = { ...linkData, id: `link-${Date.now()}`, categoryId };
   await addLinkDb(newLink);
   revalidatePath("/");
   revalidatePath("/admin");
 }
 
-export async function updateLink(linkId: string, linkData: Omit<LinkItem, "id">) {
+export async function updateLink(linkId: string, linkData: Omit<LinkItem, "id" | "categoryId">) {
   await updateLinkDb(linkId, linkData);
   revalidatePath("/");
   revalidatePath("/admin");

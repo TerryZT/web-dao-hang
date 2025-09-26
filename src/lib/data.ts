@@ -1,100 +1,134 @@
 "use server";
 
 import "server-only";
-import { db } from "@/lib/db";
-import {
-  settingsTable,
-  categoriesTable,
-  linksTable,
-  adminConfigTable,
-} from "@/lib/db/schema";
-import type { Category, LinkItem, Settings } from "@/lib/types";
-import { eq } from "drizzle-orm";
-import { migrateDb } from "./db/migrate";
+import type { Category, LinkItem, Settings, AdminConfig } from "@/lib/types";
+import fs from "fs/promises";
+import path from "path";
 
-// --- Data Access Functions ---
-const runMigration = async () => {
+// Path to the JSON file
+const dataPath = path.join(process.cwd(), "src", "lib", "app-data.json");
+
+type AppData = {
+  settings: Settings;
+  categories: Category[];
+  adminPasswordHash: string;
+};
+
+// Helper function to read data from the JSON file
+const readData = async (): Promise<AppData> => {
   try {
-    await migrateDb();
-  } catch (e: any) {
-    console.error("Migration failed:", e.message);
-    // We can choose to not throw here to allow the app to run with an old schema
-    // but for this app, we want to ensure schema is up to date.
-    throw new Error("Database migration failed. Check the connection and schema.");
+    const fileContent = await fs.readFile(dataPath, "utf-8");
+    return JSON.parse(fileContent);
+  } catch (error) {
+    console.error("Error reading data file:", error);
+    // Return default structure if file doesn't exist or is corrupted
+    return {
+      settings: {
+        id: 1,
+        title: "Erin导航",
+        logo: "https://pic1.imgdb.cn/item/6817c79a58cb8da5c8dc723f.png",
+        copyright: "© 2024 英语全科启蒙. All Rights Reserved.",
+        searchEnabled: true,
+      },
+      categories: [],
+      adminPasswordHash: "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8" // default: 'password'
+    };
   }
-}
+};
+
+// Helper function to write data to the JSON file
+const writeData = async (data: AppData): Promise<void> => {
+  try {
+    await fs.writeFile(dataPath, JSON.stringify(data, null, 2), "utf-8");
+  } catch (error) {
+    console.error("Error writing data file:", error);
+  }
+};
 
 export const getSettings = async (): Promise<Settings> => {
-  await runMigration();
-  const settingsResult = await db.select().from(settingsTable).limit(1);
-  if (settingsResult.length === 0) {
-     // This case should ideally not be hit if migration and seeding are correct.
-    const defaultSettings = { 
-        title: "Erin导航", 
-        logo: "https://pic1.imgdb.cn/item/6817c79a58cb8da5c8dc723f.png", 
-        copyright: "© 2024 英语全科启蒙. All Rights Reserved.", 
-        searchEnabled: true 
-    };
-    await db.insert(settingsTable).values(defaultSettings);
-    return defaultSettings;
-  }
-  return settingsResult[0];
+  const data = await readData();
+  return data.settings;
 };
 
 export const getCategories = async (): Promise<Category[]> => {
-  await runMigration();
-  const categoriesResult = await db.select().from(categoriesTable);
-  const linksResult = await db.select().from(linksTable);
-
-  return categoriesResult.map((c) => ({
-    ...c,
-    links: linksResult.filter((l) => l.categoryId === c.id),
+  const data = await readData();
+  // Ensure links are associated with categories
+  const categories = data.categories.map(category => ({
+    ...category,
+    links: category.links || []
   }));
+  return categories;
 };
 
+
 export const getAdminPasswordHash = async (): Promise<string> => {
-  await runMigration();
-  const result = await db.select().from(adminConfigTable).limit(1);
-  if (result.length === 0) {
-      const defaultHash = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"; // password
-      await db.insert(adminConfigTable).values({ adminPasswordHash: defaultHash });
-      return defaultHash;
-  }
-  return result[0].adminPasswordHash;
+  const data = await readData();
+  return data.adminPasswordHash;
 };
 
 // --- Data Mutation Functions ---
 
 export const updateSettings = async (newSettings: Omit<Settings, 'id'>): Promise<void> => {
-  await db.update(settingsTable).set(newSettings);
+  const data = await readData();
+  data.settings = { ...data.settings, ...newSettings };
+  await writeData(data);
 };
 
 export const updateAdminPassword = async (newPasswordHash: string): Promise<void> => {
-  await db.update(adminConfigTable).set({ adminPasswordHash: newPasswordHash });
+  const data = await readData();
+  data.adminPasswordHash = newPasswordHash;
+  await writeData(data);
 };
 
 export const addCategoryDb = async (category: Omit<Category, 'links'>) => {
-    await db.insert(categoriesTable).values(category);
+    const data = await readData();
+    data.categories.push({ ...category, links: [] });
+    await writeData(data);
 }
 
 export const updateCategoryDb = async (id: string, newName: string) => {
-    await db.update(categoriesTable).set({ name: newName }).where(eq(categoriesTable.id, id));
+    const data = await readData();
+    const category = data.categories.find(c => c.id === id);
+    if (category) {
+        category.name = newName;
+        await writeData(data);
+    }
 }
 
 export const deleteCategoryDb = async (id: string) => {
-    // Also delete associated links
-    await db.delete(linksTable).where(eq(linksTable.categoryId, id));
-    await db.delete(categoriesTable).where(eq(categoriesTable.id, id));
+    const data = await readData();
+    data.categories = data.categories.filter(c => c.id !== id);
+    await writeData(data);
 }
 
-export const addLinkDb = async (link: LinkItem) => {
-    await db.insert(linksTable).values(link);
+export const addLinkDb = async (newLink: LinkItem) => {
+    const data = await readData();
+    const category = data.categories.find(c => c.id === newLink.categoryId);
+    if (category) {
+        if (!category.links) {
+            category.links = [];
+        }
+        category.links.push(newLink);
+        await writeData(data);
+    }
 }
 
-export const updateLinkDb = async (id: string, linkData: Omit<LinkItem, "id">) => {
-    await db.update(linksTable).set(linkData).where(eq(linksTable.id, id));
+export const updateLinkDb = async (id: string, linkData: Omit<LinkItem, "id" | "categoryId">) => {
+    const data = await readData();
+    for (const category of data.categories) {
+        const link = category.links.find(l => l.id === id);
+        if (link) {
+            Object.assign(link, linkData);
+            await writeData(data);
+            return;
+        }
+    }
 }
 
 export const deleteLinkDb = async (id: string) => {
-    await db.delete(linksTable).where(eq(linksTable.id, id));
+    const data = await readData();
+    data.categories.forEach(category => {
+        category.links = category.links.filter(l => l.id !== id);
+    });
+    await writeData(data);
 }
