@@ -82,8 +82,8 @@ export async function saveSettings(
 
   try {
     await updateSettings(validatedFields.data);
-    revalidatePath("/");
     revalidatePath("/admin");
+    revalidatePath("/");
     return { message: "设置已成功保存！", type: 'success' };
   } catch (e) {
     return { message: "保存设置失败。", type: 'error' };
@@ -141,6 +141,7 @@ export async function addCategory(name: string) {
   categories.push(newCategory);
   await updateCategories(categories);
   revalidatePath("/");
+  revalidatePath("/admin");
 }
 
 export async function updateCategory(id: string, newName: string) {
@@ -150,6 +151,7 @@ export async function updateCategory(id: string, newName: string) {
     category.name = newName;
     await updateCategories(categories);
     revalidatePath("/");
+    revalidatePath("/admin");
   }
 }
 
@@ -158,6 +160,7 @@ export async function deleteCategory(id: string) {
   categories = categories.filter((c) => c.id !== id);
   await updateCategories(categories);
   revalidatePath("/");
+  revalidatePath("/admin");
 }
 
 // Link Actions
@@ -169,6 +172,7 @@ export async function addLink(categoryId: string, linkData: Omit<LinkItem, "id">
     category.links.push(newLink);
     await updateCategories(categories);
     revalidatePath("/");
+    revalidatePath("/admin");
   }
 }
 
@@ -180,6 +184,7 @@ export async function updateLink(linkId: string, linkData: Omit<LinkItem, "id">)
       category.links[linkIndex] = { ...linkData, id: linkId };
       await updateCategories(categories);
       revalidatePath("/");
+      revalidatePath("/admin");
       return;
     }
   }
@@ -192,4 +197,5 @@ export async function deleteLink(linkId: string) {
   }
   await updateCategories(categories);
   revalidatePath("/");
+  revalidatePath("/admin");
 }

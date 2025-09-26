@@ -10,25 +10,41 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { useFormStatus } from "react-dom";
+
+function SettingsSubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" disabled={pending}>
+      {pending ? "保存中..." : "保存设置"}
+    </Button>
+  );
+}
+
+function PasswordSubmitButton() {
+    const { pending } = useFormStatus();
+    return (
+        <Button type="submit" disabled={pending}>
+        {pending ? "修改中..." : "修改密码"}
+        </Button>
+    );
+}
 
 export function SettingsManager({ initialSettings }: { initialSettings: Settings }) {
   const { toast } = useToast();
-  const [isPending, startTransition] = useTransition();
-
-  const handleSaveSettings = (formData: FormData) => {
-    startTransition(async () => {
-      const result = await saveSettings(undefined, formData);
-      if (result?.message) {
-        toast({
-          title: result.type === 'success' ? "成功" : "错误",
-          description: result.message,
-          variant: result.type === 'error' ? "destructive" : "default",
-        });
-      }
-    });
-  };
-
+  
+  const [settingsState, settingsFormAction] = useActionState(saveSettings, undefined);
   const [passwordState, passwordFormAction] = useActionState(changePassword, undefined);
+
+  useEffect(() => {
+    if (settingsState?.message) {
+      toast({
+        title: settingsState.type === 'success' ? "成功" : "错误",
+        description: settingsState.message,
+        variant: settingsState.type === 'error' ? "destructive" : "default",
+      });
+    }
+  }, [settingsState, toast]);
 
   useEffect(() => {
     if (passwordState?.message) {
@@ -51,7 +67,7 @@ export function SettingsManager({ initialSettings }: { initialSettings: Settings
           <CardDescription>管理网站的基本信息和功能。</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={handleSaveSettings} className="space-y-6">
+          <form action={settingsFormAction} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="title">网站标题</Label>
               <Input id="title" name="title" defaultValue={initialSettings.title} />
@@ -71,7 +87,7 @@ export function SettingsManager({ initialSettings }: { initialSettings: Settings
                 </div>
                 <Switch id="searchEnabled" name="searchEnabled" defaultChecked={initialSettings.searchEnabled} />
             </div>
-            <Button type="submit" disabled={isPending}>{isPending ? "保存中..." : "保存设置"}</Button>
+            <SettingsSubmitButton />
           </form>
         </CardContent>
       </Card>
@@ -95,7 +111,7 @@ export function SettingsManager({ initialSettings }: { initialSettings: Settings
               <Label htmlFor="confirmPassword">确认新密码</Label>
               <Input id="confirmPassword" name="confirmPassword" type="password" required />
             </div>
-            <Button type="submit">修改密码</Button>
+            <PasswordSubmitButton />
           </form>
         </CardContent>
       </Card>
