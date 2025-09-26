@@ -1,6 +1,6 @@
 "use client";
 
-import { useFormState } from "react-dom";
+import { useActionState } from "react";
 import { useEffect } from "react";
 import type { Settings } from "@/lib/types";
 import { saveSettings, changePassword } from "@/lib/actions";
@@ -14,8 +14,8 @@ import { Separator } from "@/components/ui/separator";
 
 export function SettingsManager({ initialSettings }: { initialSettings: Settings }) {
   const { toast } = useToast();
-  const [settingsState, settingsFormAction] = useFormState(saveSettings, undefined);
-  const [passwordState, passwordFormAction] = useFormState(changePassword, undefined);
+  const [settingsState, settingsFormAction] = useActionState(saveSettings, undefined);
+  const [passwordState, passwordFormAction] = useActionState(changePassword, undefined);
 
   useEffect(() => {
     if (settingsState?.message) {
