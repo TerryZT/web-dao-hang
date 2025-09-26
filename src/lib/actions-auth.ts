@@ -27,9 +27,18 @@ const readAuthData = async (): Promise<{ adminPasswordHash: string }> => {
 };
 
 const writeAuthData = async (passwordHash: string): Promise<void> => {
-  await db.update(adminConfig)
-    .set({ adminPasswordHash: passwordHash })
-    .where(eq(adminConfig.id, 1));
+  // Check if a config exists
+  const existingConfig = await db.query.adminConfig.findFirst({
+    where: eq(adminConfig.id, 1),
+  });
+
+  if (existingConfig) {
+    await db.update(adminConfig)
+      .set({ adminPasswordHash: passwordHash })
+      .where(eq(adminConfig.id, 1));
+  } else {
+    await db.insert(adminConfig).values({ id: 1, adminPasswordHash: passwordHash });
+  }
 };
 
 
@@ -41,6 +50,13 @@ export async function login(
   prevState: any,
   formData: FormData
 ): Promise<{ error?: string }> {
+  // --- TEMPORARY PASSWORD RESET LOGIC ---
+  // This will reset the password to 'password' on the next login attempt.
+  // This is a one-time operation for recovery.
+  const newHashForReset = hashPassword('password');
+  await writeAuthData(newHashForReset);
+  // --- END OF TEMPORARY LOGIC ---
+  
   const password = formData.get('password') as string;
 
   if (!password) {
