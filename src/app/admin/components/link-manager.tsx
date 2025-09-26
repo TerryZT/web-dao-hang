@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useOptimistic, useTransition } from "react";
+import { useState, useOptimistic, useTransition, useReducer } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -29,7 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogClose
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -57,6 +58,40 @@ import { Plus, Edit, Trash, GripVertical, PlusCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 
+type OptimisticAction =
+  | { action: 'addCategory'; payload: Category }
+  | { action: 'updateCategory'; payload: { id: string; name: string } }
+  | { action: 'deleteCategory'; payload: { id: string } }
+  | { action: 'addLink'; payload: { categoryId: string; link: LinkItem } }
+  | { action: 'updateLink'; payload: { link: LinkItem } }
+  | { action: 'deleteLink'; payload: { linkId: string; categoryId: string } };
+
+function optimisticReducer(state: Category[], { action, payload }: OptimisticAction): Category[] {
+    switch (action) {
+        case 'addCategory':
+            return [...state, payload];
+        case 'updateCategory':
+            return state.map(c => c.id === payload.id ? { ...c, name: payload.name } : c);
+        case 'deleteCategory':
+            return state.filter(c => c.id !== payload.id);
+        case 'addLink':
+            return state.map(c => c.id === payload.categoryId ? { ...c, links: [...c.links, payload.link] } : c);
+        case 'updateLink':
+            return state.map(c => ({
+                ...c,
+                links: c.links.map(l => l.id === payload.link.id ? payload.link : l)
+            }));
+        case 'deleteLink':
+             return state.map(c => 
+                c.id === payload.categoryId 
+                ? { ...c, links: c.links.filter(l => l.id !== payload.linkId) }
+                : c
+            );
+        default:
+            return state;
+    }
+}
+
 const linkSchema = z.object({
   name: z.string().min(1, "名称不能为空"),
   url: z.string().url("请输入有效的URL"),
@@ -67,41 +102,15 @@ const linkSchema = z.object({
 type LinkFormData = z.infer<typeof linkSchema>;
 
 export function LinkManager({ initialCategories }: { initialCategories: Category[] }) {
+    const router = useRouter();
     const [isPending, startTransition] = useTransition();
-    const [categories, setCategories] = useState<Category[]>(initialCategories);
-    const [optimisticCategories, setOptimisticCategories] = useOptimistic(
-        categories,
-        (state, { action, payload }) => {
-            switch (action) {
-                case 'addCategory':
-                    return [...state, payload];
-                case 'updateCategory':
-                    return state.map(c => c.id === payload.id ? { ...c, name: payload.name } : c);
-                case 'deleteCategory':
-                    return state.filter(c => c.id !== payload.id);
-                case 'addLink':
-                    return state.map(c => c.id === payload.categoryId ? { ...c, links: [...c.links, payload.link] } : c);
-                case 'updateLink':
-                    return state.map(c => ({
-                        ...c,
-                        links: c.links.map(l => l.id === payload.link.id ? payload.link : l)
-                    }));
-                case 'deleteLink':
-                     return state.map(c => ({
-                        ...c,
-                        links: c.links.filter(l => l.id !== payload.linkId)
-                    }));
-                default:
-                    return state;
-            }
-        }
-    );
+    const [optimisticCategories, dispatchOptimistic] = useReducer(optimisticReducer, initialCategories);
 
   const [openDialog, setOpenDialog] = useState<
     | { type: "add-cat" }
     | { type: "edit-cat"; category: Category }
     | { type: "add-link"; categoryId: string }
-    | { type: "edit-link"; link: LinkItem }
+    | { type: "edit-link"; link: LinkItem; categoryId: string }
     | null
   >(null);
 
@@ -123,72 +132,60 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
     }
     setOpenDialog(dialog);
   };
+  
+  const handleMutation = (action: () => Promise<void>, optimisticUpdate: OptimisticAction) => {
+    startTransition(async () => {
+      dispatchOptimistic(optimisticUpdate);
+      try {
+        await action();
+        router.refresh();
+      } catch (error) {
+        console.error("Operation failed:", error);
+        toast({ title: "错误", description: "操作失败，请重试", variant: "destructive" });
+        // Optionally revert optimistic update, though router.refresh() will handle it
+        router.refresh(); 
+      }
+    });
+  };
 
   const handleCategorySubmit = async (data: { name: string }) => {
     if (!openDialog) return;
     
-    startTransition(async () => {
-        try {
-            if(openDialog.type === "add-cat") {
-                const newCategory = { id: `cat-${Date.now()}`, name: data.name, links: [] };
-                setOptimisticCategories({ action: 'addCategory', payload: newCategory });
-                await addCategory(data.name);
-                setCategories(cats => [...cats, newCategory]);
-                toast({ title: "成功", description: "分类已添加" });
-            } else if (openDialog.type === "edit-cat") {
-                setOptimisticCategories({ action: 'updateCategory', payload: { id: openDialog.category.id, name: data.name } });
-                await updateCategory(openDialog.category.id, data.name);
-                setCategories(cats => cats.map(c => c.id === openDialog.category.id ? { ...c, name: data.name } : c));
-                toast({ title: "成功", description: "分类已更新" });
-            }
-            setOpenDialog(null);
-        } catch {
-            toast({ title: "错误", description: "操作失败", variant: "destructive" });
-        }
-    });
+    if (openDialog.type === "add-cat") {
+        const newCategory = { id: `cat-${Date.now()}`, name: data.name, links: [] };
+        handleMutation(() => addCategory(data.name), { action: 'addCategory', payload: newCategory });
+        toast({ title: "成功", description: "分类已添加" });
+    } else if (openDialog.type === "edit-cat") {
+        const { id } = openDialog.category;
+        handleMutation(() => updateCategory(id, data.name), { action: 'updateCategory', payload: { id, name: data.name } });
+        toast({ title: "成功", description: "分类已更新" });
+    }
+    setOpenDialog(null);
   };
   
   const handleDeleteCategory = async (categoryId: string) => {
-    startTransition(async () => {
-        setOptimisticCategories({ action: 'deleteCategory', payload: { id: categoryId } });
-        await deleteCategory(categoryId);
-        setCategories(cats => cats.filter(c => c.id !== categoryId));
-        toast({ title: "成功", description: "分类已删除" });
-    });
+     handleMutation(() => deleteCategory(categoryId), { action: 'deleteCategory', payload: { id: categoryId } });
+     toast({ title: "成功", description: "分类已删除" });
   };
 
   const handleLinkSubmit = async (data: LinkFormData) => {
     if (!openDialog) return;
     
-    startTransition(async () => {
-        try {
-            if (openDialog.type === "add-link") {
-                const newLink = { ...data, id: `link-${Date.now()}` };
-                setOptimisticCategories({ action: 'addLink', payload: { categoryId: openDialog.categoryId, link: newLink } });
-                await addLink(openDialog.categoryId, data);
-                setCategories(cats => cats.map(c => c.id === openDialog.categoryId ? { ...c, links: [...c.links, newLink] } : c));
-                toast({ title: "成功", description: "链接已添加" });
-            } else if (openDialog.type === "edit-link") {
-                const updatedLink = { ...data, id: openDialog.link.id };
-                setOptimisticCategories({ action: 'updateLink', payload: { link: updatedLink } });
-                await updateLink(openDialog.link.id, data);
-                setCategories(cats => cats.map(c => ({...c, links: c.links.map(l => l.id === updatedLink.id ? updatedLink : l)})));
-                toast({ title: "成功", description: "链接已更新" });
-            }
-            setOpenDialog(null);
-        } catch {
-            toast({ title: "错误", description: "操作失败", variant: "destructive" });
-        }
-    });
+     if (openDialog.type === "add-link") {
+        const newLink = { ...data, id: `link-${Date.now()}`, categoryId: openDialog.categoryId };
+        handleMutation(() => addLink(openDialog.categoryId, data), { action: 'addLink', payload: { categoryId: openDialog.categoryId, link: newLink } });
+        toast({ title: "成功", description: "链接已添加" });
+    } else if (openDialog.type === "edit-link") {
+        const updatedLink = { ...data, id: openDialog.link.id, categoryId: openDialog.categoryId };
+        handleMutation(() => updateLink(openDialog.link.id, data), { action: 'updateLink', payload: { link: updatedLink } });
+        toast({ title: "成功", description: "链接已更新" });
+    }
+    setOpenDialog(null);
   };
   
-   const handleDeleteLink = async (linkId: string) => {
-    startTransition(async () => {
-        setOptimisticCategories({ action: 'deleteLink', payload: { linkId } });
-        await deleteLink(linkId);
-        setCategories(cats => cats.map(c => ({...c, links: c.links.filter(l => l.id !== linkId)})));
-        toast({ title: "成功", description: "链接已删除" });
-    });
+   const handleDeleteLink = async (linkId: string, categoryId: string) => {
+    handleMutation(() => deleteLink(linkId), { action: 'deleteLink', payload: { linkId, categoryId } });
+    toast({ title: "成功", description: "链接已删除" });
   };
 
   return (
@@ -222,7 +219,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm">
+                      <Button variant="destructive" size="sm" disabled={isPending}>
                         <Trash className="mr-2 h-3 w-3" /> 删除分类
                       </Button>
                     </AlertDialogTrigger>
@@ -241,7 +238,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-                  <Button size="sm" onClick={() => handleOpenDialog({ type: "add-link", categoryId: category.id })}>
+                  <Button size="sm" onClick={() => handleOpenDialog({ type: "add-link", categoryId: category.id })} disabled={isPending}>
                     <Plus className="mr-2 h-4 w-4" /> 添加链接
                   </Button>
                 </div>
@@ -268,13 +265,14 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleOpenDialog({ type: 'edit-link', link})}
+                              onClick={() => handleOpenDialog({ type: 'edit-link', link, categoryId: category.id })}
+                               disabled={isPending}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={isPending}>
                                   <Trash className="h-4 w-4" />
                                 </Button>
                               </AlertDialogTrigger>
@@ -287,7 +285,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>取消</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteLink(link.id)}>
+                                    <AlertDialogAction onClick={() => handleDeleteLink(link.id, category.id)}>
                                     确认
                                     </AlertDialogAction>
                                 </AlertDialogFooter>
@@ -337,7 +335,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                 <DialogClose asChild>
                     <Button type="button" variant="ghost">取消</Button>
                 </DialogClose>
-              <Button type="submit">保存</Button>
+              <Button type="submit" disabled={isPending}>保存</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -376,7 +374,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                 <DialogClose asChild>
                     <Button type="button" variant="ghost">取消</Button>
                 </DialogClose>
-              <Button type="submit">保存</Button>
+              <Button type="submit" disabled={isPending}>保存</Button>
             </DialogFooter>
           </form>
         </DialogContent>

@@ -35,39 +35,44 @@ export function SettingsManager({ initialSettings }: { initialSettings: Settings
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const [passwordState, passwordFormAction] = useReducer(
-    (_: any, formData: FormData) => changePassword(_, formData),
-    undefined
+  const [passwordFormState, passwordFormAction] = useReducer(
+    (state: any, payload: { message: string; type: 'success' | 'error' }) => payload,
+    { message: '', type: 'success' }
   );
+  
+  const wrappedPasswordAction = async (formData: FormData) => {
+    const result = await changePassword(passwordFormState, formData);
+    passwordFormAction(result);
+  };
 
   useEffect(() => {
-    if (passwordState?.message) {
+    if (passwordFormState?.message) {
       toast({
-        title: passwordState.type === 'success' ? "成功" : "错误",
-        description: passwordState.message,
-        variant: passwordState.type === 'error' ? "destructive" : "default",
+        title: passwordFormState.type === 'success' ? "成功" : "错误",
+        description: passwordFormState.message,
+        variant: passwordFormState.type === 'error' ? "destructive" : "default",
       });
-      if(passwordState.type === 'success') {
+      if(passwordFormState.type === 'success') {
         (document.getElementById('password-form') as HTMLFormElement)?.reset();
       }
     }
-  }, [passwordState, toast]);
+  }, [passwordFormState, toast]);
 
   const handleSaveSettings = async (formData: FormData) => {
-    const result = await saveSettings(formData);
-    if (result?.message) {
-      toast({
-        title: result.type === 'success' ? "成功" : "错误",
-        description: result.message,
-        variant: result.type === 'error' ? "destructive" : "default",
-      });
-
-      if (result.type === 'success') {
-        startTransition(() => {
-            router.refresh();
+     startTransition(async () => {
+        const result = await saveSettings(formData);
+        if (result?.message) {
+        toast({
+            title: result.type === 'success' ? "成功" : "错误",
+            description: result.message,
+            variant: result.type === 'error' ? "destructive" : "default",
         });
-      }
-    }
+
+        if (result.type === 'success') {
+            router.refresh();
+        }
+        }
+    });
   };
 
   return (
@@ -109,7 +114,7 @@ export function SettingsManager({ initialSettings }: { initialSettings: Settings
           <CardDescription>定期更换密码以确保账户安全。</CardDescription>
         </CardHeader>
         <CardContent>
-          <form id="password-form" action={passwordFormAction} className="space-y-6">
+          <form id="password-form" action={wrappedPasswordAction} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="currentPassword">当前密码</Label>
               <Input id="currentPassword" name="currentPassword" type="password" required />
