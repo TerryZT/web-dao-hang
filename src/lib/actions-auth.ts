@@ -2,41 +2,34 @@
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import fs from 'fs/promises';
-import path from 'path';
 import crypto from 'crypto';
-import type { AppData } from './types';
 import { z } from 'zod';
+import { db } from './db';
+import { adminConfig } from './schema';
+import { eq } from 'drizzle-orm';
 
-const dataPath = path.join(process.cwd(), 'src', 'lib', 'app-data.json');
 const sessionCookieName = 'erin-nav-session';
 
-// IMPORTANT: This file now only handles AUTH, which still uses a JSON file
-// for the password hash for simplicity. It does NOT interact with the database.
-
 const readAuthData = async (): Promise<{ adminPasswordHash: string }> => {
-  try {
-    // This file is a fallback and should be created if it doesn't exist.
-    await fs.access(dataPath);
-  } catch (error) {
-     const defaultData: AppData = {
-        settings: { id: 1, title: '', logo: '', copyright: '', searchEnabled: true },
-        categories: [],
-        adminPasswordHash: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', // default: 'password'
-      };
-    await fs.writeFile(dataPath, JSON.stringify(defaultData, null, 2), 'utf-8');
-  }
+    let config = await db.query.adminConfig.findFirst();
 
-  const fileContent = await fs.readFile(dataPath, 'utf-8');
-  const data = JSON.parse(fileContent);
-  return { adminPasswordHash: data.adminPasswordHash };
+    if (!config) {
+        const defaultPassword = 'password';
+        const defaultHash = hashPassword(defaultPassword);
+        [config] = await db.insert(adminConfig).values({ id: 1, adminPasswordHash: defaultHash }).returning();
+    }
+    
+    if (!config) {
+        throw new Error("Failed to create or retrieve admin config.");
+    }
+
+    return { adminPasswordHash: config.adminPasswordHash };
 };
 
 const writeAuthData = async (passwordHash: string): Promise<void> => {
-  const fileContent = await fs.readFile(dataPath, 'utf-8');
-  const data = JSON.parse(fileContent);
-  data.adminPasswordHash = passwordHash;
-  await fs.writeFile(dataPath, JSON.stringify(data, null, 2), 'utf-8');
+  await db.update(adminConfig)
+    .set({ adminPasswordHash: passwordHash })
+    .where(eq(adminConfig.id, 1));
 };
 
 

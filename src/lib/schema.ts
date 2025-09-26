@@ -3,6 +3,7 @@ import {
   text,
   boolean,
   varchar,
+  integer,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -29,6 +30,11 @@ export const links = pgTable('links', {
     .references(() => categories.id, { onDelete: 'cascade' }),
 });
 
+export const adminConfig = pgTable('admin_config', {
+    id: integer('id').primaryKey(),
+    adminPasswordHash: text('adminPasswordHash').notNull(),
+});
+
 export const categoriesRelations = relations(categories, ({ many }) => ({
   links: many(links),
 }));
@@ -48,3 +54,6 @@ export type NewCategory = typeof categories.$inferInsert;
 
 export type Link = typeof links.$inferSelect;
 export type NewLink = typeof links.$inferInsert;
+
+export type AdminConfig = typeof adminConfig.$inferSelect;
+export type NewAdminConfig = typeof adminConfig.$inferInsert;
