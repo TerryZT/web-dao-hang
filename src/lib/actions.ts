@@ -8,14 +8,12 @@ import { eq, sql } from 'drizzle-orm';
 
 export async function saveSettings(newSettings: Omit<Settings, 'id'>) {
     try {
-        // There is only one row for settings, so we update it.
-        // The ID is always 1, but we use a filter to be safe.
+        // There is only one row for settings, so we can update it without a where clause.
         await db.update(settingsTable)
             .set({
                 ...newSettings,
                 updatedAt: new Date(),
-            })
-            .where(eq(settingsTable.id, 1));
+            });
         
         revalidatePath('/');
         revalidatePath('/admin');

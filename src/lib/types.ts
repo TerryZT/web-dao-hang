@@ -14,7 +14,7 @@ export type Category = {
 };
 
 export type Settings = {
-  id: number;
+  id?: number; // Made optional as it's being removed from schema
   logo: string;
   title: string;
   copyright: string;

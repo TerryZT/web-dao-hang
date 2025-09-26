@@ -9,7 +9,7 @@ import {
 import { relations } from 'drizzle-orm';
 
 export const settings = pgTable('settings', {
-  id: integer('id').primaryKey(),
+  // The settings table should only ever have one row, so an ID is not needed.
   title: varchar('title', { length: 256 }).notNull(),
   logo: text('logo').notNull(),
   copyright: varchar('copyright', { length: 256 }).notNull(),

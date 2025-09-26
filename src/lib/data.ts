@@ -3,17 +3,17 @@
 import 'server-only';
 import { db } from './db';
 import * as schema from './schema';
-import type { Category, Settings } from './types';
+import type { Settings } from './types';
 import { eq } from 'drizzle-orm';
 
 // Helper function to handle potential empty results
 async function getOrCreateDefaultSettings(): Promise<Settings> {
-    let settingsResult = await db.select().from(schema.settings).where(eq(schema.settings.id, 1));
+    // Since there's only one row, we can just select the first one.
+    let settingsResult = await db.select().from(schema.settings).limit(1);
     
     if (settingsResult.length === 0) {
         // If no settings exist, create the default one
-        const defaultSettings: Settings = {
-            id: 1,
+        const defaultSettings: Omit<Settings, 'id'> = {
             title: '英语全科启蒙网站导航',
             logo: 'https://pic1.imgdb.cn/item/6817c79a58cb8da5c8dc723f.png',
             copyright: '© 2024 英语全科启蒙. All Rights Reserved.',
@@ -24,7 +24,7 @@ async function getOrCreateDefaultSettings(): Promise<Settings> {
             return defaultSettings;
         } catch (error) {
             // In a race condition, another request might have created it. Try fetching again.
-            settingsResult = await db.select().from(schema.settings).where(eq(schema.settings.id, 1));
+            settingsResult = await db.select().from(schema.settings).limit(1);
             if(settingsResult.length > 0) {
                 return settingsResult[0];
             }
@@ -45,7 +45,6 @@ export const getSettings = async (): Promise<Settings> => {
         console.error("Database error fetching settings:", error);
         // Fallback to default settings if DB fails
         return {
-            id: 1,
             title: 'Erin导航',
             logo: 'https://pic1.imgdb.cn/item/6817c79a58cb8da5c8dc723f.png',
             copyright: '© 2024 英语全科启蒙. All Rights Reserved.',
