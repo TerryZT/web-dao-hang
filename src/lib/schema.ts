@@ -2,9 +2,7 @@ import {
   pgTable,
   text,
   boolean,
-  timestamp,
   varchar,
-  integer,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -25,8 +23,8 @@ export const links = pgTable('links', {
   name: varchar('name', { length: 256 }).notNull(),
   url: text('url').notNull(),
   description: text('description').notNull(),
-  logoUrl: text('logo_url'),
-  categoryId: varchar('category_id', { length: 128 })
+  logoUrl: text('logoUrl'),
+  categoryId: varchar('categoryId', { length: 128 })
     .notNull()
     .references(() => categories.id, { onDelete: 'cascade' }),
 });
