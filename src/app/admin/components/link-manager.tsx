@@ -78,6 +78,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<LinkFormData>();
   
@@ -95,8 +96,11 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
 
   const handleOpenDialog = (dialog: NonNullable<typeof openDialog>) => {
     reset();
-    if(dialog.type === 'edit-link') {
-        reset(dialog.link)
+    if (dialog.type === 'edit-link') {
+        setValue('name', dialog.link.name);
+        setValue('url', dialog.link.url);
+        setValue('description', dialog.link.description);
+        setValue('logoUrl', dialog.link.logoUrl || '');
     }
     setOpenDialog(dialog);
   };

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Settings } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -26,13 +26,15 @@ export function SettingsManager({ initialSettings }: { initialSettings: Settings
   const [settings, setSettings] = useState(initialSettings);
   const [isSettingsPending, startSettingsTransition] = useTransition();
   const [isPasswordPending, startPasswordTransition] = useTransition();
-  const [passwordMessage, setPasswordMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+
+  useEffect(() => {
+    setSettings(initialSettings);
+  }, [initialSettings]);
 
   const handlePasswordSubmit = async (formData: FormData) => {
     startPasswordTransition(async () => {
       const result = await changePassword(formData);
       if (result?.message) {
-        setPasswordMessage({ text: result.message, type: result.type });
         toast({
           title: result.type === 'success' ? "成功" : "错误",
           description: result.message,

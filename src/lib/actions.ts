@@ -8,7 +8,6 @@ import { eq, sql } from 'drizzle-orm';
 
 export async function saveSettings(newSettings: Omit<Settings, 'id'>) {
     try {
-        // There is only one row for settings, so we can update it without a where clause.
         await db.update(settingsTable)
             .set({
                 ...newSettings,
@@ -28,42 +27,43 @@ export async function saveSettings(newSettings: Omit<Settings, 'id'>) {
 
 export async function saveAllCategories(categories: Category[]) {
     try {
-        // This is a complex transaction. We need to:
-        // 1. Delete all existing links.
-        // 2. Delete all existing categories.
-        // 3. Insert the new categories.
-        // 4. Insert the new links.
         await db.transaction(async (tx) => {
-            await tx.delete(linksTable);
-            await tx.delete(categoriesTable);
+            // Delete all links and categories that are no longer in the new state.
+            await tx.execute(sql`DELETE FROM ${linksTable} WHERE id NOT IN ${categories.flatMap(c => c.links).map(l => l.id)}`);
+            await tx.execute(sql`DELETE FROM ${categoriesTable} WHERE id NOT IN ${categories.map(c => c.id)}`);
 
-            if (categories.length > 0) {
-                 const newCategories = categories.map(c => ({
-                    id: c.id,
-                    name: c.name
-                }));
-                await tx.insert(categoriesTable).values(newCategories);
-
-                const allLinks: Omit<LinkItem, 'categoryId'>[] = [];
-                categories.forEach(c => {
-                    c.links.forEach(l => {
-                        allLinks.push({
-                            id: l.id,
-                            name: l.name,
-                            url: l.url,
-                            description: l.description,
-                            logoUrl: l.logoUrl,
-                            categoryId: c.id, // Add categoryId for the relation
-                        });
+            // Upsert categories
+            for (const category of categories) {
+                 await tx.insert(categoriesTable)
+                    .values({ id: category.id, name: category.name })
+                    .onConflictDoUpdate({ 
+                        target: categoriesTable.id, 
+                        set: { name: category.name } 
                     });
-                });
                 
-                if (allLinks.length > 0) {
-                    await tx.insert(linksTable).values(allLinks.map(link => ({
-                        ...link,
-                        id: link.id,
-                        categoryId: link.categoryId
-                    })));
+                // Upsert links for the category
+                if (category.links.length > 0) {
+                    for (const link of category.links) {
+                        await tx.insert(linksTable)
+                            .values({
+                                id: link.id,
+                                name: link.name,
+                                url: link.url,
+                                description: link.description,
+                                logoUrl: link.logoUrl,
+                                categoryId: category.id,
+                            })
+                            .onConflictDoUpdate({
+                                target: linksTable.id,
+                                set: {
+                                    name: link.name,
+                                    url: link.url,
+                                    description: link.description,
+                                    logoUrl: link.logoUrl,
+                                    categoryId: category.id,
+                                }
+                            });
+                    }
                 }
             }
         });
