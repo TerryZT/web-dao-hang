@@ -16,8 +16,8 @@ export function MainHeader({ settings }: { settings: Settings }) {
                     <Image
                         src={settings.logo}
                         alt="Logo"
-                        width={250}
-                        height={80}
+                        width={600}
+                        height={200}
                         className="object-contain"
                         priority
                     />
