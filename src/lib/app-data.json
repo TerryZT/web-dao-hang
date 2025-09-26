@@ -33,6 +33,13 @@
           "name": "ChatGPT",
           "url": "https://chat.openai.com",
           "description": "人工智能聊天机器人"
+        },
+        {
+          "name": "英语",
+          "url": "https://www.douyin.com/",
+          "description": "专业英语网站",
+          "logoUrl": "https://pic1.imgdb.cn/item/6817c79a58cb8da5c8dc723f.png",
+          "id": "link-1758865346350"
         }
       ]
     },
