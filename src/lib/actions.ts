@@ -4,21 +4,44 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import {
-  getAdminPasswordHash,
-  updateAdminPassword,
-  updateSettings,
-  addCategoryDb,
-  updateCategoryDb,
-  deleteCategoryDb,
-  addLinkDb,
-  updateLinkDb,
-  deleteLinkDb,
-} from "./data";
-import type { LinkItem } from "./types";
+import fs from "fs/promises";
+import path from "path";
 import crypto from "crypto";
+import type { LinkItem, Settings, Category, AppData } from "./types";
 
+const dataPath = path.join(process.cwd(), "src", "lib", "app-data.json");
 const sessionCookieName = "erin-nav-session";
+
+// Helper function to read data from the JSON file
+const readData = async (): Promise<AppData> => {
+  try {
+    const fileContent = await fs.readFile(dataPath, "utf-8");
+    return JSON.parse(fileContent);
+  } catch (error) {
+    console.error("Error reading data file:", error);
+    // Return default structure if file doesn't exist or is corrupted
+    return {
+      settings: {
+        id: 1,
+        title: "Erin导航",
+        logo: "https://pic1.imgdb.cn/item/6817c79a58cb8da5c8dc723f.png",
+        copyright: "© 2024 英语全科启蒙. All Rights Reserved.",
+        searchEnabled: true,
+      },
+      categories: [],
+      adminPasswordHash: "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8" // default: 'password'
+    };
+  }
+};
+
+// Helper function to write data to the JSON file
+const writeData = async (data: AppData): Promise<void> => {
+  try {
+    await fs.writeFile(dataPath, JSON.stringify(data, null, 2), "utf-8");
+  } catch (error) {
+    console.error("Error writing data file:", error);
+  }
+};
 
 function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password).digest("hex");
@@ -43,7 +66,8 @@ export async function login(
   }
   
   const { password } = validatedFields.data;
-  const storedHash = await getAdminPasswordHash();
+  const data = await readData();
+  const storedHash = data.adminPasswordHash;
   const inputHash = hashPassword(password);
 
   if (inputHash === storedHash) {
@@ -64,7 +88,7 @@ export async function logout() {
 
 const settingsSchema = z.object({
   title: z.string().min(1, "网站标题不能为空"),
-  logo: z.string().min(1, "Logo文本不能为空"),
+  logo: z.string().url("请输入有效的图片URL").or(z.literal('')),
   copyright: z.string().min(1, "版权信息不能为空"),
   searchEnabled: z.preprocess((val) => val === "on", z.boolean()),
 });
@@ -83,7 +107,9 @@ export async function saveSettings(
   }
 
   try {
-    await updateSettings(validatedFields.data);
+    const data = await readData();
+    data.settings = { ...data.settings, ...validatedFields.data };
+    await writeData(data);
     revalidatePath('/');
     revalidatePath('/admin');
     return { message: "设置已成功保存！", type: 'success' };
@@ -115,7 +141,8 @@ export async function changePassword(
     
     const { currentPassword, newPassword } = validatedFields.data;
     
-    const storedHash = await getAdminPasswordHash();
+    const data = await readData();
+    const storedHash = data.adminPasswordHash;
     const currentHash = hashPassword(currentPassword);
 
     if (currentHash !== storedHash) {
@@ -124,7 +151,8 @@ export async function changePassword(
 
     try {
         const newHash = hashPassword(newPassword);
-        await updateAdminPassword(newHash);
+        data.adminPasswordHash = newHash;
+        await writeData(data);
         return { message: "密码修改成功！", type: 'success' };
     } catch (e) {
         return { message: "密码修改失败。", type: 'error' };
@@ -134,43 +162,73 @@ export async function changePassword(
 
 // Category Actions
 export async function addCategory(name: string) {
+  const data = await readData();
   const newCategory = {
     id: `cat-${Date.now()}`,
     name,
+    links: [],
   };
-  await addCategoryDb(newCategory);
+  data.categories.push(newCategory);
+  await writeData(data);
   revalidatePath("/");
   revalidatePath("/admin");
 }
 
 export async function updateCategory(id: string, newName: string) {
-  await updateCategoryDb(id, newName);
+  const data = await readData();
+  const category = data.categories.find(c => c.id === id);
+  if (category) {
+      category.name = newName;
+      await writeData(data);
+  }
   revalidatePath("/");
   revalidatePath("/admin");
 }
 
 export async function deleteCategory(id: string) {
-  await deleteCategoryDb(id);
+  const data = await readData();
+  data.categories = data.categories.filter(c => c.id !== id);
+  await writeData(data);
   revalidatePath("/");
   revalidatePath("/admin");
 }
 
 // Link Actions
 export async function addLink(categoryId: string, linkData: Omit<LinkItem, "id" | "categoryId">) {
-  const newLink: LinkItem = { ...linkData, id: `link-${Date.now()}`, categoryId };
-  await addLinkDb(newLink);
+  const data = await readData();
+  const category = data.categories.find(c => c.id === categoryId);
+  if (category) {
+      const newLink: LinkItem = { ...linkData, id: `link-${Date.now()}`, categoryId };
+      if (!category.links) {
+          category.links = [];
+      }
+      category.links.push(newLink);
+      await writeData(data);
+  }
   revalidatePath("/");
   revalidatePath("/admin");
 }
 
 export async function updateLink(linkId: string, linkData: Omit<LinkItem, "id" | "categoryId">) {
-  await updateLinkDb(linkId, linkData);
-  revalidatePath("/");
-  revalidatePath("/admin");
+    const data = await readData();
+    for (const category of data.categories) {
+        const linkIndex = category.links.findIndex(l => l.id === linkId);
+        if (linkIndex !== -1) {
+            category.links[linkIndex] = { ...category.links[linkIndex], ...linkData };
+            await writeData(data);
+            revalidatePath("/");
+            revalidatePath("/admin");
+            return;
+        }
+    }
 }
 
 export async function deleteLink(linkId: string) {
-  await deleteLinkDb(linkId);
-  revalidatePath("/");
-  revalidatePath("/admin");
+    const data = await readData();
+    data.categories.forEach(category => {
+        category.links = category.links.filter(l => l.id !== linkId);
+    });
+    await writeData(data);
+    revalidatePath("/");
+    revalidatePath("/admin");
 }
