@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import type { Category, LinkItem } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search, Globe } from "lucide-react";
 
@@ -58,8 +58,8 @@ export function LinkGrid({ categories }: { categories: Category[] }) {
                       key={link.id}
                     >
                       <Card className="h-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-in-out bg-card/50 backdrop-blur-sm">
-                        <CardContent className="p-5 flex flex-col gap-4">
-                            <div className="w-14 h-14 flex items-center justify-center bg-muted rounded-xl shadow-sm">
+                        <CardContent className="p-5 flex flex-col items-center justify-center text-center h-full">
+                            <div className="w-14 h-14 flex items-center justify-center bg-muted rounded-xl shadow-sm mb-4">
                                 <Globe className="h-7 w-7 text-muted-foreground"/>
                             </div>
                             <div>
