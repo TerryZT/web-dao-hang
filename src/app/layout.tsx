@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Erin导航",
+  title: "英语全科启蒙网站导航",
   description: "一个简洁、现代的导航网站",
   icons: {
     icon: "/icon.svg",
