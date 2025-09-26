@@ -10,8 +10,7 @@ export async function saveSettings(newSettings: Omit<Settings, 'id'>) {
     try {
         await db.update(settingsTable)
             .set({
-                ...newSettings,
-                updatedAt: new Date(),
+                ...newSettings
             });
         
         revalidatePath('/');
@@ -29,8 +28,20 @@ export async function saveAllCategories(categories: Category[]) {
     try {
         await db.transaction(async (tx) => {
             // Delete all links and categories that are no longer in the new state.
-            await tx.execute(sql`DELETE FROM ${linksTable} WHERE id NOT IN ${categories.flatMap(c => c.links).map(l => l.id)}`);
-            await tx.execute(sql`DELETE FROM ${categoriesTable} WHERE id NOT IN ${categories.map(c => c.id)}`);
+            const linkIdsToKeep = categories.flatMap(c => c.links).map(l => l.id).filter(Boolean);
+            const categoryIdsToKeep = categories.map(c => c.id).filter(Boolean);
+
+            if (linkIdsToKeep.length > 0) {
+                 await tx.execute(sql`DELETE FROM ${linksTable} WHERE id NOT IN ${linkIdsToKeep}`);
+            } else {
+                 await tx.execute(sql`DELETE FROM ${linksTable}`);
+            }
+           
+            if (categoryIdsToKeep.length > 0) {
+                await tx.execute(sql`DELETE FROM ${categoriesTable} WHERE id NOT IN ${categoryIdsToKeep}`);
+            } else {
+                await tx.execute(sql`DELETE FROM ${categoriesTable}`);
+            }
 
             // Upsert categories
             for (const category of categories) {

@@ -9,13 +9,10 @@ import {
 import { relations } from 'drizzle-orm';
 
 export const settings = pgTable('settings', {
-  // The settings table should only ever have one row, so an ID is not needed.
   title: varchar('title', { length: 256 }).notNull(),
   logo: text('logo').notNull(),
   copyright: varchar('copyright', { length: 256 }).notNull(),
   searchEnabled: boolean('searchEnabled').default(true).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const categories = pgTable('categories', {
