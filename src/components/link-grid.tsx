@@ -43,7 +43,7 @@ export function LinkGrid({ categories }: { categories: Category[] }) {
         <div className="space-y-10">
             {filteredCategories.map((category) => (
               <section key={category.id}>
-                <h2 className="font-headline text-5xl font-bold mb-6 text-center">{category.name}</h2>
+                <h2 className="font-headline text-4xl font-bold mb-6 text-center">{category.name}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                   {category.links.map((link) => (
                     <a
