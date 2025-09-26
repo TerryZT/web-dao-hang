@@ -13,7 +13,7 @@ export const settings = pgTable('settings', {
   title: varchar('title', { length: 256 }).notNull(),
   logo: text('logo').notNull(),
   copyright: varchar('copyright', { length: 256 }).notNull(),
-  searchEnabled: boolean('search_enabled').default(true).notNull(),
+  searchEnabled: boolean('searchEnabled').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
