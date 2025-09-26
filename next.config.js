@@ -29,12 +29,6 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'pic1.imgdb.cn',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
         hostname: '**',
       },
     ],
