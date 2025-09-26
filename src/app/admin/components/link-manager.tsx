@@ -131,9 +131,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<LinkFormData>({
-    // resolver: zodResolver(linkSchema), // Not needed as we removed zod
-  });
+  } = useForm<LinkFormData>();
   
   const showToast = () => {
       toast({ title: "提示", description: "操作已在本地应用。刷新页面将重置所有更改。" });
