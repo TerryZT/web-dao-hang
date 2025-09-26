@@ -3,6 +3,7 @@ export type LinkItem = {
   name: string;
   url: string;
   description: string;
+  logoUrl?: string;
 };
 
 export type Category = {

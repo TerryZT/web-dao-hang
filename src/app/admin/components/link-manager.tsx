@@ -61,6 +61,7 @@ const linkSchema = z.object({
   name: z.string().min(1, "名称不能为空"),
   url: z.string().url("请输入有效的URL"),
   description: z.string().min(1, "描述不能为空"),
+  logoUrl: z.string().url("请输入有效的图片URL").optional().or(z.literal('')),
 });
 
 type LinkFormData = z.infer<typeof linkSchema>;
@@ -191,6 +192,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                       <TableHead>名称</TableHead>
                       <TableHead>URL</TableHead>
                       <TableHead>描述</TableHead>
+                      <TableHead>Logo URL</TableHead>
                       <TableHead className="text-right">操作</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -200,6 +202,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                         <TableCell className="font-medium">{link.name}</TableCell>
                         <TableCell className="text-muted-foreground truncate max-w-xs">{link.url}</TableCell>
                         <TableCell className="text-muted-foreground truncate max-w-xs">{link.description}</TableCell>
+                        <TableCell className="text-muted-foreground truncate max-w-xs">{link.logoUrl}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
                             <Button
@@ -305,6 +308,11 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                 <Label htmlFor="link-desc">描述</Label>
                 <Textarea id="link-desc" {...register("description")} />
                 {errors.description && <p className="text-destructive text-sm mt-1">{errors.description.message}</p>}
+              </div>
+              <div>
+                <Label htmlFor="link-logo">Logo 图片地址</Label>
+                <Input id="link-logo" {...register("logoUrl")} placeholder="https://example.com/logo.png"/>
+                {errors.logoUrl && <p className="text-destructive text-sm mt-1">{errors.logoUrl.message}</p>}
               </div>
             </div>
             <DialogFooter>

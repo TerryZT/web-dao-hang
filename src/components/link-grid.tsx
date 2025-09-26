@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Image from "next/image";
 import type { Category, LinkItem } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,7 +33,7 @@ export function LinkGrid({ categories }: { categories: Category[] }) {
         <Input
           type="search"
           placeholder="搜索..."
-          className="w-full pl-4 pr-4 py-6 text-base rounded-lg shadow-sm bg-white focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="w-full pl-4 pr-4 py-6 text-base rounded-lg shadow-sm bg-white dark:bg-card focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -54,8 +55,12 @@ export function LinkGrid({ categories }: { categories: Category[] }) {
                     >
                       <Card className="h-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-in-out bg-card/50 backdrop-blur-sm">
                         <CardContent className="p-5 flex flex-col items-center justify-center text-center h-full">
-                            <div className="w-14 h-14 flex items-center justify-center bg-muted rounded-xl shadow-sm mb-4">
-                                <Globe className="h-7 w-7 text-muted-foreground"/>
+                            <div className="w-14 h-14 flex items-center justify-center bg-muted rounded-xl shadow-sm mb-4 relative overflow-hidden">
+                                {link.logoUrl ? (
+                                    <Image src={link.logoUrl} alt={`${link.name} logo`} fill style={{objectFit: 'contain'}} sizes="56px" />
+                                ) : (
+                                    <Globe className="h-7 w-7 text-muted-foreground"/>
+                                )}
                             </div>
                             <div>
                                 <h3 className="font-semibold text-lg">{link.name}</h3>
