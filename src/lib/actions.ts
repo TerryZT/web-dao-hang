@@ -73,7 +73,7 @@ export async function login(
   if (inputHash === storedHash) {
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     cookies().set(sessionCookieName, "loggedIn", { expires, httpOnly: true });
-    return { success: true };
+    redirect("/admin");
   } else {
     return {
       error: "密码错误",
