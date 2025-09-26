@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useReducer, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -49,68 +49,6 @@ import { Plus, Edit, Trash, GripVertical, PlusCircle, Save } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 
-type Action =
-  | { type: 'SET_STATE'; payload: Category[] }
-  | { type: 'ADD_CATEGORY'; payload: { name: string } }
-  | { type: 'UPDATE_CATEGORY'; payload: { id: string; name: string } }
-  | { type: 'DELETE_CATEGORY'; payload: { id: string } }
-  | { type: 'ADD_LINK'; payload: { categoryId: string; link: Omit<LinkItem, 'id' | 'categoryId'> } }
-  | { type: 'UPDATE_LINK'; payload: { linkId: string; categoryId: string; linkData: Omit<LinkItem, 'id' | 'categoryId'> } }
-  | { type: 'DELETE_LINK'; payload: { linkId: string; categoryId: string } };
-
-function categoriesReducer(state: Category[], action: Action): Category[] {
-  switch (action.type) {
-    case 'SET_STATE':
-        return action.payload;
-    case 'ADD_CATEGORY':
-      const newCategory: Category = {
-        id: `cat-${Date.now()}`,
-        name: action.payload.name,
-        links: [],
-      };
-      return [...state, newCategory];
-    case 'UPDATE_CATEGORY':
-      return state.map(c =>
-        c.id === action.payload.id ? { ...c, name: action.payload.name } : c
-      );
-    case 'DELETE_CATEGORY':
-      return state.filter(c => c.id !== action.payload.id);
-    case 'ADD_LINK':
-      return state.map(c => {
-        if (c.id === action.payload.categoryId) {
-          const newLink: LinkItem = {
-            ...action.payload.link,
-            id: `link-${Date.now()}`,
-            categoryId: action.payload.categoryId,
-          };
-          return { ...c, links: [...c.links, newLink] };
-        }
-        return c;
-      });
-    case 'UPDATE_LINK':
-      return state.map(c => {
-        if (c.id === action.payload.categoryId) {
-          return {
-            ...c,
-            links: c.links.map(l =>
-              l.id === action.payload.linkId ? { ...l, ...action.payload.linkData } : l
-            ),
-          };
-        }
-        return c;
-      });
-    case 'DELETE_LINK':
-      return state.map(c => {
-        if (c.id === action.payload.categoryId) {
-          return { ...c, links: c.links.filter(l => l.id !== action.payload.linkId) };
-        }
-        return c;
-      });
-    default:
-      return state;
-  }
-}
-
 const linkSchema = z.object({
   name: z.string().min(1, "名称不能为空"),
   url: z.string().url("请输入有效的URL"),
@@ -123,7 +61,7 @@ type LinkFormData = z.infer<typeof linkSchema>;
 export function LinkManager({ initialCategories }: { initialCategories: Category[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [categories, dispatch] = useReducer(categoriesReducer, initialCategories);
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [openDialog, setOpenDialog] = useState<
     | { type: "add-cat" }
     | { type: "edit-cat"; category: Category }
@@ -133,7 +71,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
   >(null);
 
   useEffect(() => {
-    dispatch({ type: 'SET_STATE', payload: initialCategories });
+    setCategories(initialCategories);
   }, [initialCategories]);
 
   const {
@@ -167,30 +105,62 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
     if (!openDialog) return;
     
     if (openDialog.type === "add-cat") {
-        dispatch({ type: 'ADD_CATEGORY', payload: { name: data.name } });
+        const newCategory: Category = {
+          id: `cat-${Date.now()}`,
+          name: data.name,
+          links: [],
+        };
+        setCategories(prev => [...prev, newCategory]);
     } else if (openDialog.type === "edit-cat") {
-        dispatch({ type: 'UPDATE_CATEGORY', payload: { id: openDialog.category.id, name: data.name } });
+        setCategories(prev => prev.map(c =>
+            c.id === openDialog.category.id ? { ...c, name: data.name } : c
+        ));
     }
     setOpenDialog(null);
   };
   
   const handleDeleteCategory = (categoryId: string) => {
-     dispatch({ type: 'DELETE_CATEGORY', payload: { id: categoryId } });
+     setCategories(prev => prev.filter(c => c.id !== categoryId));
   };
 
   const handleLinkSubmit = (data: LinkFormData) => {
     if (!openDialog) return;
     
      if (openDialog.type === "add-link") {
-        dispatch({ type: 'ADD_LINK', payload: { categoryId: openDialog.categoryId, link: data } });
+        setCategories(prev => prev.map(c => {
+            if (c.id === openDialog.categoryId) {
+              const newLink: LinkItem = {
+                ...data,
+                id: `link-${Date.now()}`,
+                categoryId: openDialog.categoryId,
+              };
+              return { ...c, links: [...c.links, newLink] };
+            }
+            return c;
+        }));
     } else if (openDialog.type === "edit-link") {
-        dispatch({ type: 'UPDATE_LINK', payload: { linkId: openDialog.link.id, categoryId: openDialog.categoryId, linkData: data } });
+        setCategories(prev => prev.map(c => {
+            if (c.id === openDialog.categoryId) {
+                return {
+                    ...c,
+                    links: c.links.map(l =>
+                    l.id === openDialog.link.id ? { ...l, ...data } : l
+                    ),
+                };
+            }
+            return c;
+        }));
     }
     setOpenDialog(null);
   };
   
    const handleDeleteLink = (linkId: string, categoryId: string) => {
-    dispatch({ type: 'DELETE_LINK', payload: { linkId, categoryId } });
+    setCategories(prev => prev.map(c => {
+        if (c.id === categoryId) {
+          return { ...c, links: c.links.filter(l => l.id !== linkId) };
+        }
+        return c;
+    }));
   };
 
   return (
@@ -199,7 +169,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
         <div className="flex justify-between items-center">
           <CardTitle>分类和链接</CardTitle>
           <div className="flex items-center gap-2">
-            <Button onClick={() => setOpenDialog({ type: "add-cat" })}>
+            <Button onClick={() => handleOpenDialog({ type: "add-cat" })}>
                 <PlusCircle className="mr-2 h-4 w-4" /> 添加分类
             </Button>
             <Button onClick={handleSaveChanges} disabled={isPending}>
@@ -318,7 +288,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
         {categories.length === 0 && (
             <div className="text-center py-16 border rounded-lg">
                 <p className="text-muted-foreground">还没有任何分类。</p>
-                <Button className="mt-4" onClick={() => setOpenDialog({ type: "add-cat" })}>
+                <Button className="mt-4" onClick={() => handleOpenDialog({ type: "add-cat" })}>
                     <PlusCircle className="mr-2 h-4 w-4" /> 创建第一个分类
                 </Button>
             </div>
