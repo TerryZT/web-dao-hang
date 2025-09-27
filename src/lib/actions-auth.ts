@@ -50,13 +50,6 @@ export async function login(
   prevState: any,
   formData: FormData
 ): Promise<{ error?: string }> {
-  // --- TEMPORARY PASSWORD RESET LOGIC ---
-  // This will reset the password to 'password' on the next login attempt.
-  // This is a one-time operation for recovery.
-  const newHashForReset = hashPassword('password');
-  await writeAuthData(newHashForReset);
-  // --- END OF TEMPORARY LOGIC ---
-  
   const password = formData.get('password') as string;
 
   if (!password) {
