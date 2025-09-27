@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { logout } from "@/lib/actions";
+import { logout } from "@/lib/actions-auth";
 import { Button } from "@/components/ui/button";
 import { LogOut, Home } from "lucide-react";
 
