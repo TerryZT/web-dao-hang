@@ -22,8 +22,10 @@ const themes = [
 export function ThemeSwitcher() {
   const { setTheme, theme } = useTheme()
   const [colorTheme, setColorTheme] = React.useState('default');
+  const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
+    setMounted(true);
     const storedColorTheme = localStorage.getItem('color-theme');
     if (storedColorTheme && themes.some(t => t.value === storedColorTheme)) {
         setColorTheme(storedColorTheme);
@@ -49,6 +51,19 @@ export function ThemeSwitcher() {
        if (newColor !== 'default') {
           document.body.classList.add(`theme-${newColor}`);
        }
+  }
+  
+  if (!mounted) {
+    return (
+        <div className="flex gap-2">
+            <Button variant="ghost" size="icon">
+                <Palette className="h-[1.2rem] w-[1.2rem]"/>
+            </Button>
+            <Button variant="ghost" size="icon">
+                <Sun className="h-[1.2rem] w-[1.2rem]" />
+            </Button>
+        </div>
+    )
   }
 
   return (
