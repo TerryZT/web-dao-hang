@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useTheme } from "next-themes"
-import { Moon, Sun, Palette, Check, Monitor } from "lucide-react"
+import { Moon, Sun, Palette, Monitor, Pipette, Sunrise, Leaf } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -10,21 +10,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuPortal,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger
 } from "@/components/ui/dropdown-menu"
 
-const themes = [
-    { name: "默认", value: "default" },
-    { name: "玫瑰", value: "rose" },
-    { name: "薄荷", value: "mint" },
-    { name: "日落", value: "sunset" },
-]
-
 export function ThemeSwitcher() {
-  const { setTheme, theme } = useTheme()
+  const { setTheme } = useTheme()
 
   return (
     <DropdownMenu>
@@ -35,35 +24,30 @@ export function ThemeSwitcher() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
-          <Sun className="mr-2 h-4 w-4" />
-          亮色
+        <DropdownMenuItem onClick={() => setTheme("system")}>
+          <Monitor className="mr-2 h-4 w-4" />
+          跟随系统
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("dark")}>
           <Moon className="mr-2 h-4 w-4" />
           暗色
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
-          <Monitor className="mr-2 h-4 w-4" />
-          跟随系统
+        <DropdownMenuItem onClick={() => setTheme("light")}>
+          <Sun className="mr-2 h-4 w-4" />
+          亮色
         </DropdownMenuItem>
-        <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-                <Palette className="mr-2 h-4 w-4" />
-                <span>主题颜色</span>
-            </DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-                <DropdownMenuSubContent>
-                    {themes.map((t) => (
-                        <DropdownMenuItem key={t.value} onClick={() => setTheme(`theme-${t.value}`)}>
-                             <div className="w-4 h-4 rounded-full mr-2" style={{ backgroundColor: `hsl(var(--primary))` }}></div>
-                            {t.name}
-                            {theme === `theme-${t.value}` && <Check className="ml-auto h-4 w-4" />}
-                        </DropdownMenuItem>
-                    ))}
-                </DropdownMenuSubContent>
-            </DropdownMenuPortal>
-        </DropdownMenuSub>
+        <DropdownMenuItem onClick={() => setTheme("theme-rose")}>
+          <Pipette className="mr-2 h-4 w-4" />
+          玫瑰
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("theme-sunset")}>
+          <Sunrise className="mr-2 h-4 w-4" />
+          日落
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("theme-mint")}>
+          <Leaf className="mr-2 h-4 w-4" />
+          薄荷
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )
