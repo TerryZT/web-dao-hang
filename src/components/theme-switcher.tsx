@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useTheme } from "next-themes"
-import { Moon, Sun, Palette, Check } from "lucide-react"
+import { Moon, Sun, Palette, Check, Monitor } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -42,6 +42,10 @@ export function ThemeSwitcher() {
         <DropdownMenuItem onClick={() => setTheme("dark")}>
           <Moon className="mr-2 h-4 w-4" />
           暗色
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("system")}>
+          <Monitor className="mr-2 h-4 w-4" />
+          跟随系统
         </DropdownMenuItem>
         <DropdownMenuSub>
             <DropdownMenuSubTrigger>
