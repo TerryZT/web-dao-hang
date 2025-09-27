@@ -1,11 +1,13 @@
 import Link from "next/link";
 import type { Settings } from "@/lib/types";
 import Image from "next/image";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 
 export function MainHeader({ settings }: { settings: Settings }) {
   return (
     <header className="py-8 md:py-12 text-center relative">
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4 flex items-center gap-2">
+            <ThemeSwitcher />
             <Link href="/admin" className="text-sm bg-white text-black px-4 py-2 rounded shadow hover:bg-gray-100 transition-colors">
             管理入口
             </Link>

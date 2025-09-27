@@ -7,7 +7,7 @@ body {
 }
 
 @layer base {
-  :root {
+  :root, .theme-default {
     --background: 0 0% 100%;
     --foreground: 240 6% 10%;
     --card: 240 5% 97%;
@@ -34,7 +34,7 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
-  .dark {
+  .dark, .dark .theme-default {
     --background: 240 6% 8%;
     --foreground: 0 0% 98%;
     --card: 240 4% 12%;
@@ -59,6 +59,33 @@ body {
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+  }
+
+  .theme-rose {
+    --primary: 346.8 77.2% 49.8%;
+    --primary-foreground: 355.7 100% 97.3%;
+  }
+  .dark .theme-rose {
+    --primary: 346.8 77.2% 49.8%;
+    --primary-foreground: 355.7 100% 97.3%;
+  }
+
+  .theme-mint {
+    --primary: 160 100% 30%;
+    --primary-foreground: 160 100% 95%;
+  }
+  .dark .theme-mint {
+    --primary: 160 100% 40%;
+    --primary-foreground: 160 100% 95%;
+  }
+  
+  .theme-sunset {
+    --primary: 30 100% 50%;
+    --primary-foreground: 30 100% 95%;
+  }
+  .dark .theme-sunset {
+    --primary: 30 90% 55%;
+    --primary-foreground: 30 90% 98%;
   }
 }
 
