@@ -13,12 +13,6 @@ import {
   DropResult,
 } from "react-beautiful-dnd";
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -197,6 +191,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
     
     // Handle category drag and drop
     if (type === 'category-dnd') {
+        if (source.index === destination.index) return;
         const reorderedCategories = reorder(
             categories,
             source.index,
@@ -206,7 +201,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
     } 
     
     // Handle link drag and drop
-    else if (type === 'link-dnd') {
+    else if (type.startsWith('link-dnd-')) {
         const sourceCategoryId = source.droppableId;
         const destCategoryId = destination.droppableId;
         
@@ -249,167 +244,166 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle>分类和链接</CardTitle>
-          <div className="flex items-center gap-2">
-            <Button onClick={() => handleOpenDialog({ type: "add-cat" })}>
-                <PlusCircle className="mr-2 h-4 w-4" /> 添加分类
-            </Button>
-            <Button onClick={handleSaveChanges} disabled={isPending}>
-                <Save className="mr-2 h-4 w-4" />
-                {isPending ? '保存中...' : '保存所有更改'}
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <DragDropContext onDragEnd={onDragEnd}>
-            <Droppable droppableId="all-categories" type="category-dnd">
-            {(provided) => (
-                <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
-                 <Accordion type="multiple" className="w-full space-y-2">
-                    {categories.map((category, index) => (
-                        <Draggable key={category.id} draggableId={category.id} index={index}>
-                        {(providedDraggable) => (
-                            <div ref={providedDraggable.innerRef} {...providedDraggable.draggableProps}>
-                                <AccordionItem value={category.id} className="border-b-0 rounded-lg border bg-background shadow-sm">
-                                <AccordionTrigger className="px-4 hover:no-underline">
-                                    <div className="flex items-center gap-3 w-full" {...providedDraggable.dragHandleProps}>
-                                      <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
-                                      <span className="font-semibold text-lg">{category.name}</span>
-                                    </div>
-                                </AccordionTrigger>
-                                <AccordionContent className="px-4 pb-4">
-                                    <div className="flex items-center justify-end gap-2 mb-4 border-t pt-4">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleOpenDialog({ type: "edit-cat", category })}
-                                    >
-                                        <Edit className="mr-2 h-3 w-3" /> 编辑名称
-                                    </Button>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" size="sm">
-                                            <Trash className="mr-2 h-3 w-3" /> 删除分类
-                                        </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>确认删除？</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                            这将永久删除 “{category.name}” 分类及其所有链接。此操作在点击“保存所有更改”后生效。
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>取消</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteCategory(category.id)}>
-                                            确认
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                    <Button size="sm" onClick={() => handleOpenDialog({ type: "add-link", categoryId: category.id })}>
-                                        <Plus className="mr-2 h-4 w-4" /> 添加链接
-                                    </Button>
-                                    </div>
-
-                                    <Droppable droppableId={category.id} type="link-dnd">
-                                    {(providedDroppable) => (
-                                        <div ref={providedDroppable.innerRef} {...providedDroppable.droppableProps}>
-                                            <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                <TableHead className="w-12"></TableHead>
-                                                <TableHead>名称</TableHead>
-                                                <TableHead>URL</TableHead>
-                                                <TableHead>描述</TableHead>
-                                                <TableHead>Logo URL</TableHead>
-                                                <TableHead className="text-right">操作</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {category.links.map((link, linkIndex) => (
-                                                <Draggable key={link.id} draggableId={link.id} index={linkIndex}>
-                                                    {(providedLink) => (
-                                                    <TableRow ref={providedLink.innerRef} {...providedLink.draggableProps}>
-                                                        <TableCell {...providedLink.dragHandleProps} className="cursor-grab">
-                                                            <GripVertical className="h-5 w-5 text-muted-foreground" />
-                                                        </TableCell>
-                                                        <TableCell className="font-medium">{link.name}</TableCell>
-                                                        <TableCell className="text-muted-foreground truncate max-w-xs">{link.url}</TableCell>
-                                                        <TableCell className="text-muted-foreground truncate max-w-xs">{link.description}</TableCell>
-                                                        <TableCell className="text-muted-foreground truncate max-w-xs">{link.logoUrl}</TableCell>
-                                                        <TableCell className="text-right">
-                                                        <div className="flex gap-2 justify-end">
-                                                            <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => handleOpenDialog({ type: 'edit-link', link, categoryId: category.id })}
-                                                            >
-                                                            <Edit className="h-4 w-4" />
-                                                            </Button>
-                                                            <AlertDialog>
-                                                            <AlertDialogTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                                                <Trash className="h-4 w-4" />
-                                                                </Button>
-                                                            </AlertDialogTrigger>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader>
-                                                                    <AlertDialogTitle>确认删除？</AlertDialogTitle>
-                                                                    <AlertDialogDescription>
-                                                                    这将永久删除 “{link.name}” 链接。此操作在点击“保存所有更改”后生效。
-                                                                    </AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel>取消</AlertDialogCancel>
-                                                                    <AlertDialogAction onClick={() => handleDeleteLink(link.id, category.id)}>
-                                                                    确认
-                                                                    </AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                            </AlertDialog>
-                                                        </div>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                    )}
-                                                </Draggable>
-                                                ))}
-                                                {providedDroppable.placeholder}
-                                            </TableBody>
-                                            </Table>
-                                        </div>
-                                    )}
-                                    </Droppable>
-                                    {category.links.length === 0 && (
-                                        <p className="text-center text-sm text-muted-foreground py-8">此分类下暂无链接。</p>
-                                    )}
-                                </AccordionContent>
-                                </AccordionItem>
-                            </div>
-                        )}
-                        </Draggable>
-                    ))}
-                    {provided.placeholder}
-                 </Accordion>
-                </div>
-            )}
-            </Droppable>
-        </DragDropContext>
-        
-        {categories.length === 0 && (
-            <div className="text-center py-16 border rounded-lg">
-                <p className="text-muted-foreground">还没有任何分类。</p>
-                <Button className="mt-4" onClick={() => handleOpenDialog({ type: "add-cat" })}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> 创建第一个分类
-                </Button>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>分类和链接管理</CardTitle>
+            <div className="flex items-center gap-2">
+              <Button onClick={() => handleOpenDialog({ type: "add-cat" })}>
+                  <PlusCircle className="mr-2 h-4 w-4" /> 添加分类
+              </Button>
+              <Button onClick={handleSaveChanges} disabled={isPending}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {isPending ? '保存中...' : '保存所有更改'}
+              </Button>
             </div>
-        )}
+          </div>
+        </CardHeader>
+      </Card>
 
-      </CardContent>
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId="all-categories" type="category-dnd">
+          {(provided) => (
+            <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
+              {categories.map((category, index) => (
+                <Draggable key={category.id} draggableId={category.id} index={index}>
+                  {(providedDraggable) => (
+                    <div ref={providedDraggable.innerRef} {...providedDraggable.draggableProps} className="rounded-lg border bg-card shadow-sm">
+                      <Card>
+                        <CardHeader className="flex flex-row items-center justify-between p-4">
+                          <div className="flex items-center gap-3 font-semibold text-lg" {...providedDraggable.dragHandleProps}>
+                            <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+                            <span>{category.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenDialog({ type: "edit-cat", category })}
+                            >
+                              <Edit className="mr-2 h-3 w-3" /> 编辑名称
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="sm">
+                                  <Trash className="mr-2 h-3 w-3" /> 删除分类
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>确认删除？</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    这将永久删除 “{category.name}” 分类及其所有链接。此操作在点击“保存所有更改”后生效。
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>取消</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteCategory(category.id)}>
+                                    确认
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                            <Button size="sm" onClick={() => handleOpenDialog({ type: "add-link", categoryId: category.id })}>
+                              <Plus className="mr-2 h-4 w-4" /> 添加链接
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                          <Droppable droppableId={category.id} type={`link-dnd-${category.id}`}>
+                            {(providedDroppable) => (
+                              <div ref={providedDroppable.innerRef} {...providedDroppable.droppableProps} className="rounded-md border">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="w-12"></TableHead>
+                                      <TableHead>名称</TableHead>
+                                      <TableHead>URL</TableHead>
+                                      <TableHead>描述</TableHead>
+                                      <TableHead>Logo URL</TableHead>
+                                      <TableHead className="text-right w-[120px]">操作</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {category.links.map((link, linkIndex) => (
+                                      <Draggable key={link.id} draggableId={link.id} index={linkIndex}>
+                                        {(providedLink) => (
+                                          <TableRow ref={providedLink.innerRef} {...providedLink.draggableProps}>
+                                            <TableCell {...providedLink.dragHandleProps} className="cursor-grab">
+                                              <GripVertical className="h-5 w-5 text-muted-foreground" />
+                                            </TableCell>
+                                            <TableCell className="font-medium">{link.name}</TableCell>
+                                            <TableCell className="text-muted-foreground truncate max-w-xs">{link.url}</TableCell>
+                                            <TableCell className="text-muted-foreground truncate max-w-xs">{link.description}</TableCell>
+                                            <TableCell className="text-muted-foreground truncate max-w-xs">{link.logoUrl}</TableCell>
+                                            <TableCell className="text-right">
+                                              <div className="flex gap-2 justify-end">
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  onClick={() => handleOpenDialog({ type: 'edit-link', link, categoryId: category.id })}
+                                                >
+                                                  <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <AlertDialog>
+                                                  <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                                      <Trash className="h-4 w-4" />
+                                                    </Button>
+                                                  </AlertDialogTrigger>
+                                                  <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                      <AlertDialogTitle>确认删除？</AlertDialogTitle>
+                                                      <AlertDialogDescription>
+                                                        这将永久删除 “{link.name}” 链接。此操作在点击“保存所有更改”后生效。
+                                                      </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                      <AlertDialogCancel>取消</AlertDialogCancel>
+                                                      <AlertDialogAction onClick={() => handleDeleteLink(link.id, category.id)}>
+                                                        确认
+                                                      </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                  </AlertDialogContent>
+                                                </AlertDialog>
+                                              </div>
+                                            </TableCell>
+                                          </TableRow>
+                                        )}
+                                      </Draggable>
+                                    ))}
+                                    {providedDroppable.placeholder}
+                                  </TableBody>
+                                </Table>
+                                {category.links.length === 0 && (
+                                    <p className="text-center text-sm text-muted-foreground py-8">此分类下暂无链接。</p>
+                                )}
+                              </div>
+                            )}
+                          </Droppable>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
+      
+      {categories.length === 0 && (
+        <Card>
+          <CardContent className="text-center py-16">
+            <p className="text-muted-foreground">还没有任何分类。</p>
+            <Button className="mt-4" onClick={() => handleOpenDialog({ type: "add-cat" })}>
+              <PlusCircle className="mr-2 h-4 w-4" /> 创建第一个分类
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Dialog for adding/editing categories */}
       <Dialog open={openDialog?.type === 'add-cat' || openDialog?.type === 'edit-cat'} onOpenChange={(isOpen) => !isOpen && setOpenDialog(null)}>
@@ -474,6 +468,6 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
           </form>
         </DialogContent>
       </Dialog>
-    </Card>
+    </div>
   );
 }
