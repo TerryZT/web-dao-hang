@@ -194,7 +194,6 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
       return;
     }
     
-    // Handle category drag and drop
     if (type === 'category-dnd') {
         if (source.index === destination.index) return;
         const reorderedCategories = reorder(
@@ -206,41 +205,38 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
         return;
     } 
     
-    // Handle link drag and drop
     if (type === 'link-dnd') {
         const sourceCategoryId = source.droppableId;
         const destCategoryId = destination.droppableId;
         
-        const newCategories = [...categories];
-        const sourceCategory = newCategories.find(c => c.id === sourceCategoryId);
-        const destCategory = newCategories.find(c => c.id === destCategoryId);
+        let newCategories = [...categories];
+        const sourceCategoryIndex = newCategories.findIndex(c => c.id === sourceCategoryId);
+        const destCategoryIndex = newCategories.findIndex(c => c.id === destCategoryId);
+
+        const sourceCategory = newCategories[sourceCategoryIndex];
+        const destCategory = newCategories[destCategoryIndex];
 
         if (!sourceCategory || !destCategory) return;
-
-        // Reordering within the same category
+        
         if (sourceCategoryId === destCategoryId) {
             const reorderedLinks = reorder(
                 sourceCategory.links,
                 source.index,
                 destination.index
             );
-            const updatedCategories = newCategories.map(c => 
-                c.id === sourceCategoryId ? { ...c, links: reorderedLinks } : c
-            );
-            setCategories(updatedCategories);
-        } 
-        // Moving from one category to another
-        else {
-            const [movedLink] = sourceCategory.links.splice(source.index, 1);
-            movedLink.categoryId = destCategoryId;
-            destCategory.links.splice(destination.index, 0, movedLink);
+            newCategories[sourceCategoryIndex] = { ...sourceCategory, links: reorderedLinks };
+            setCategories(newCategories);
+        } else {
+            const sourceLinks = [...sourceCategory.links];
+            const destLinks = [...destCategory.links];
+            const [movedLink] = sourceLinks.splice(source.index, 1);
             
-            const updatedCategories = newCategories.map(c => {
-                if (c.id === sourceCategoryId) return sourceCategory;
-                if (c.id === destCategoryId) return destCategory;
-                return c;
-            });
-            setCategories(updatedCategories);
+            movedLink.categoryId = destCategoryId;
+            destLinks.splice(destination.index, 0, movedLink);
+            
+            newCategories[sourceCategoryIndex] = { ...sourceCategory, links: sourceLinks };
+            newCategories[destCategoryIndex] = { ...destCategory, links: destLinks };
+            setCategories(newCategories);
         }
     }
   };
@@ -275,8 +271,8 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
               {categories.map((category, index) => (
                 <Draggable key={category.id} draggableId={category.id} index={index}>
                   {(providedDraggable) => (
-                    <div ref={providedDraggable.innerRef} {...providedDraggable.draggableProps} className="rounded-lg border bg-card shadow-sm">
-                      <Collapsible defaultOpen>
+                    <div ref={providedDraggable.innerRef} {...providedDraggable.draggableProps} >
+                      <Collapsible defaultOpen className="rounded-lg border bg-card shadow-sm">
                         <div className="flex items-center justify-between p-4 border-b">
                             <div className="flex items-center gap-3 font-semibold text-lg" {...providedDraggable.dragHandleProps}>
                                 <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
