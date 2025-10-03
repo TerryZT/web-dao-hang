@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { db } from './db';
 import { settings as settingsTable, categories as categoriesTable, links as linksTable } from './schema';
 import type { Settings, Category, LinkItem } from './types';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, SQL } from 'drizzle-orm';
 
 export async function saveSettings(newSettings: Omit<Settings, 'id'>) {
     try {
@@ -27,24 +27,29 @@ export async function saveSettings(newSettings: Omit<Settings, 'id'>) {
 export async function saveAllCategories(categories: Category[]) {
     try {
         await db.transaction(async (tx) => {
-            // Delete all links and categories that are no longer in the new state.
-            const linkIdsToKeep = categories.flatMap(c => c.links).map(l => l.id).filter(Boolean);
+            const linkIdsToKeep = categories.flatMap(c => c.links.map(l => l.id)).filter(Boolean);
             const categoryIdsToKeep = categories.map(c => c.id).filter(Boolean);
 
-            if (linkIdsToKeep.length > 0) {
-                 await tx.execute(sql`DELETE FROM ${linksTable} WHERE id NOT IN ${linkIdsToKeep}`);
-            } else {
-                 await tx.execute(sql`DELETE FROM ${linksTable}`);
-            }
-           
-            if (categoryIdsToKeep.length > 0) {
-                await tx.execute(sql`DELETE FROM ${categoriesTable} WHERE id NOT IN ${categoryIdsToKeep}`);
-            } else {
-                await tx.execute(sql`DELETE FROM ${categoriesTable}`);
-            }
+            const deleteLinksQuery = linkIdsToKeep.length > 0 
+                ? sql`DELETE FROM ${linksTable} WHERE id NOT IN ${sql.join(linkIdsToKeep.map(id => sql.placeholder(id)), sql`, `)}`
+                : sql`DELETE FROM ${linksTable}`;
+            
+            await tx.execute(
+                linkIdsToKeep.length > 0 
+                ? sql`DELETE FROM ${linksTable} WHERE id NOT IN ${sql.join(linkIdsToKeep.map(id => sql.placeholder(id)), sql`, `)}`
+                : sql`DELETE FROM ${linksTable}`,
+                ...linkIdsToKeep
+            );
 
-            // Upsert categories
-            for (const category of categories) {
+            await tx.execute(
+                categoryIdsToKeep.length > 0
+                ? sql`DELETE FROM ${categoriesTable} WHERE id NOT IN ${sql.join(categoryIdsToKeep.map(id => sql.placeholder(id)), sql`, `)}`
+                : sql`DELETE FROM ${categoriesTable}`,
+                ...categoryIdsToKeep
+            );
+
+
+            for (const [index, category] of categories.entries()) {
                  await tx.insert(categoriesTable)
                     .values({ id: category.id, name: category.name })
                     .onConflictDoUpdate({ 
@@ -52,7 +57,6 @@ export async function saveAllCategories(categories: Category[]) {
                         set: { name: category.name } 
                     });
                 
-                // Upsert links for the category
                 if (category.links.length > 0) {
                     for (const link of category.links) {
                         await tx.insert(linksTable)

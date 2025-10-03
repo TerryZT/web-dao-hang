@@ -74,6 +74,7 @@ const reorder = <T,>(list: T[], startIndex: number, endIndex: number): T[] => {
 
 export function LinkManager({ initialCategories }: { initialCategories: Category[] }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [openDialog, setOpenDialog] = useState<
@@ -194,56 +195,51 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
       return;
     }
     
+    // Handle category drag and drop
     if (type === 'category-dnd') {
-      if (source.droppableId === destination.droppableId && source.index !== destination.index) {
-        const items = reorder(
+        const reorderedCategories = reorder(
             categories,
             source.index,
             destination.index
         );
-        setCategories(items);
-      }
-    } else if (type === 'link-dnd') {
+        setCategories(reorderedCategories);
+    } 
+    
+    // Handle link drag and drop
+    else if (type === 'link-dnd') {
         const sourceCategoryId = source.droppableId;
         const destCategoryId = destination.droppableId;
-
-        const sourceCategoryIndex = categories.findIndex(c => c.id === sourceCategoryId);
-        const destCategoryIndex = categories.findIndex(c => c.id === destCategoryId);
-        
-        if (sourceCategoryIndex === -1 || destCategoryIndex === -1) {
-            return;
-        }
         
         const newCategories = [...categories];
+        const sourceCategory = newCategories.find(c => c.id === sourceCategoryId);
+        const destCategory = newCategories.find(c => c.id === destCategoryId);
 
+        if (!sourceCategory || !destCategory) return;
+
+        // Reordering within the same category
         if (sourceCategoryId === destCategoryId) {
-            // Reordering within the same category
-            const sourceCategory = newCategories[sourceCategoryIndex];
-            const newLinks = reorder(
+            const reorderedLinks = reorder(
                 sourceCategory.links,
                 source.index,
                 destination.index
             );
-            newCategories[sourceCategoryIndex] = {...sourceCategory, links: newLinks};
-            setCategories(newCategories);
-
-        } else {
-            // Moving from one category to another
-            const sourceCategory = newCategories[sourceCategoryIndex];
-            const destCategory = newCategories[destCategoryIndex];
+            const updatedCategories = newCategories.map(c => 
+                c.id === sourceCategoryId ? { ...c, links: reorderedLinks } : c
+            );
+            setCategories(updatedCategories);
+        } 
+        // Moving from one category to another
+        else {
+            const [movedLink] = sourceCategory.links.splice(source.index, 1);
+            movedLink.categoryId = destCategoryId;
+            destCategory.links.splice(destination.index, 0, movedLink);
             
-            const sourceLinks = Array.from(sourceCategory.links);
-            const destLinks = Array.from(destCategory.links);
-            const [movedLink] = sourceLinks.splice(source.index, 1);
-            
-            // Update the categoryId of the moved link
-            const updatedMovedLink = { ...movedLink, categoryId: destCategoryId };
-            
-            destLinks.splice(destination.index, 0, updatedMovedLink);
-
-            newCategories[sourceCategoryIndex] = {...sourceCategory, links: sourceLinks};
-            newCategories[destCategoryIndex] = {...destCategory, links: destLinks};
-            setCategories(newCategories);
+            const updatedCategories = newCategories.map(c => {
+                if (c.id === sourceCategoryId) return sourceCategory;
+                if (c.id === destCategoryId) return destCategory;
+                return c;
+            });
+            setCategories(updatedCategories);
         }
     }
   };
