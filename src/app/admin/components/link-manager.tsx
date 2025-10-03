@@ -53,7 +53,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Edit, Trash, GripVertical, PlusCircle, Save } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const linkSchema = z.object({
   name: z.string().min(1, "名称不能为空"),
@@ -83,15 +83,11 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
     | { type: "edit-link"; link: LinkItem; categoryId: string }
     | null
   >(null);
-
+  
+  // This is a workaround for a known issue with react-beautiful-dnd in strict mode.
+  const [isDndReady, setIsDndReady] = useState(false);
   useEffect(() => {
-    // This is a workaround for a known issue with react-beautiful-dnd in strict mode.
-    // It prevents the "Cannot find droppable" error on hot-reloads.
-    const cleanup = () => {
-        (window as any)[`__react-beautiful-dnd-disable-dev-warnings`] = false;
-    };
-    (window as any)[`__react-beautiful-dnd-disable-dev-warnings`] = true;
-    return cleanup;
+    setIsDndReady(true);
   }, []);
 
   useEffect(() => {
@@ -198,41 +194,44 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
       return;
     }
     
-    if (type === 'category-dnd' && source.droppableId === destination.droppableId) {
+    if (type === 'category-dnd') {
+      if (source.droppableId === destination.droppableId && source.index !== destination.index) {
         const items = reorder(
             categories,
             source.index,
             destination.index
         );
         setCategories(items);
+      }
     } else if (type === 'link-dnd') {
         const sourceCategoryId = source.droppableId;
         const destCategoryId = destination.droppableId;
 
-        const sourceCategory = categories.find(c => c.id === sourceCategoryId);
-        const destCategory = categories.find(c => c.id === destCategoryId);
+        const sourceCategoryIndex = categories.findIndex(c => c.id === sourceCategoryId);
+        const destCategoryIndex = categories.findIndex(c => c.id === destCategoryId);
         
-        if (!sourceCategory || !destCategory) {
+        if (sourceCategoryIndex === -1 || destCategoryIndex === -1) {
             return;
         }
+        
+        const newCategories = [...categories];
 
         if (sourceCategoryId === destCategoryId) {
             // Reordering within the same category
+            const sourceCategory = newCategories[sourceCategoryIndex];
             const newLinks = reorder(
                 sourceCategory.links,
                 source.index,
                 destination.index
             );
-            const newCategories = categories.map(c => {
-                if (c.id === sourceCategoryId) {
-                    return {...c, links: newLinks};
-                }
-                return c;
-            });
+            newCategories[sourceCategoryIndex] = {...sourceCategory, links: newLinks};
             setCategories(newCategories);
 
         } else {
             // Moving from one category to another
+            const sourceCategory = newCategories[sourceCategoryIndex];
+            const destCategory = newCategories[destCategoryIndex];
+            
             const sourceLinks = Array.from(sourceCategory.links);
             const destLinks = Array.from(destCategory.links);
             const [movedLink] = sourceLinks.splice(source.index, 1);
@@ -242,19 +241,16 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
             
             destLinks.splice(destination.index, 0, updatedMovedLink);
 
-             const newCategories = categories.map(c => {
-                if (c.id === sourceCategoryId) {
-                    return {...c, links: sourceLinks};
-                }
-                if (c.id === destCategoryId) {
-                    return {...c, links: destLinks};
-                }
-                return c;
-            });
+            newCategories[sourceCategoryIndex] = {...sourceCategory, links: sourceLinks};
+            newCategories[destCategoryIndex] = {...destCategory, links: destLinks};
             setCategories(newCategories);
         }
     }
   };
+
+  if (!isDndReady) {
+    return null; // or a loading spinner
+  }
 
   return (
     <Card>
@@ -277,16 +273,16 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
             <Droppable droppableId="all-categories" type="category-dnd">
             {(provided) => (
                 <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
-                 <Accordion type="multiple" className="w-full space-y-4">
+                 <Accordion type="multiple" className="w-full space-y-2">
                     {categories.map((category, index) => (
                         <Draggable key={category.id} draggableId={category.id} index={index}>
                         {(providedDraggable) => (
                             <div ref={providedDraggable.innerRef} {...providedDraggable.draggableProps}>
-                                <AccordionItem value={category.id} className="border-b-0 rounded-lg border bg-background">
+                                <AccordionItem value={category.id} className="border-b-0 rounded-lg border bg-background shadow-sm">
                                 <AccordionTrigger className="px-4 hover:no-underline">
-                                    <div className="flex items-center gap-2 w-full" {...providedDraggable.dragHandleProps}>
-                                      <GripVertical className="h-5 w-5 text-muted-foreground" />
-                                      <span className="font-semibold">{category.name}</span>
+                                    <div className="flex items-center gap-3 w-full" {...providedDraggable.dragHandleProps}>
+                                      <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+                                      <span className="font-semibold text-lg">{category.name}</span>
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="px-4 pb-4">
