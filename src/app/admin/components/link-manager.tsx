@@ -85,6 +85,16 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
   >(null);
 
   useEffect(() => {
+    // This is a workaround for a known issue with react-beautiful-dnd in strict mode.
+    // It prevents the "Cannot find droppable" error on hot-reloads.
+    const cleanup = () => {
+        (window as any)[`__react-beautiful-dnd-disable-dev-warnings`] = false;
+    };
+    (window as any)[`__react-beautiful-dnd-disable-dev-warnings`] = true;
+    return cleanup;
+  }, []);
+
+  useEffect(() => {
     setCategories(initialCategories);
   }, [initialCategories]);
 
@@ -188,7 +198,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
       return;
     }
     
-    if (type === 'category-dnd') {
+    if (type === 'category-dnd' && source.droppableId === destination.droppableId) {
         const items = reorder(
             categories,
             source.index,
@@ -200,11 +210,16 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
         const destCategoryId = destination.droppableId;
 
         const sourceCategory = categories.find(c => c.id === sourceCategoryId);
+        const destCategory = categories.find(c => c.id === destCategoryId);
         
+        if (!sourceCategory || !destCategory) {
+            return;
+        }
+
         if (sourceCategoryId === destCategoryId) {
             // Reordering within the same category
             const newLinks = reorder(
-                sourceCategory!.links,
+                sourceCategory.links,
                 source.index,
                 destination.index
             );
@@ -218,11 +233,14 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
 
         } else {
             // Moving from one category to another
-            const destCategory = categories.find(c => c.id === destCategoryId);
-            const sourceLinks = Array.from(sourceCategory!.links);
-            const destLinks = Array.from(destCategory!.links);
+            const sourceLinks = Array.from(sourceCategory.links);
+            const destLinks = Array.from(destCategory.links);
             const [movedLink] = sourceLinks.splice(source.index, 1);
-            destLinks.splice(destination.index, 0, movedLink);
+            
+            // Update the categoryId of the moved link
+            const updatedMovedLink = { ...movedLink, categoryId: destCategoryId };
+            
+            destLinks.splice(destination.index, 0, updatedMovedLink);
 
              const newCategories = categories.map(c => {
                 if (c.id === sourceCategoryId) {
@@ -262,13 +280,13 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                  <Accordion type="multiple" className="w-full space-y-4">
                     {categories.map((category, index) => (
                         <Draggable key={category.id} draggableId={category.id} index={index}>
-                        {(provided) => (
-                            <div ref={provided.innerRef} {...provided.draggableProps}>
+                        {(providedDraggable) => (
+                            <div ref={providedDraggable.innerRef} {...providedDraggable.draggableProps}>
                                 <AccordionItem value={category.id} className="border-b-0 rounded-lg border bg-background">
                                 <AccordionTrigger className="px-4 hover:no-underline">
-                                    <div className="flex items-center gap-2" {...provided.dragHandleProps}>
-                                    <GripVertical className="h-5 w-5 text-muted-foreground" />
-                                    <span className="font-semibold">{category.name}</span>
+                                    <div className="flex items-center gap-2 w-full" {...providedDraggable.dragHandleProps}>
+                                      <GripVertical className="h-5 w-5 text-muted-foreground" />
+                                      <span className="font-semibold">{category.name}</span>
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="px-4 pb-4">
@@ -307,8 +325,8 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                                     </div>
 
                                     <Droppable droppableId={category.id} type="link-dnd">
-                                    {(provided) => (
-                                        <div ref={provided.innerRef} {...provided.droppableProps}>
+                                    {(providedDroppable) => (
+                                        <div ref={providedDroppable.innerRef} {...providedDroppable.droppableProps}>
                                             <Table>
                                             <TableHeader>
                                                 <TableRow>
@@ -323,9 +341,9 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                                             <TableBody>
                                                 {category.links.map((link, linkIndex) => (
                                                 <Draggable key={link.id} draggableId={link.id} index={linkIndex}>
-                                                    {(provided) => (
-                                                    <TableRow ref={provided.innerRef} {...provided.draggableProps}>
-                                                        <TableCell {...provided.dragHandleProps} className="cursor-grab">
+                                                    {(providedLink) => (
+                                                    <TableRow ref={providedLink.innerRef} {...providedLink.draggableProps}>
+                                                        <TableCell {...providedLink.dragHandleProps} className="cursor-grab">
                                                             <GripVertical className="h-5 w-5 text-muted-foreground" />
                                                         </TableCell>
                                                         <TableCell className="font-medium">{link.name}</TableCell>
@@ -368,7 +386,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                                                     )}
                                                 </Draggable>
                                                 ))}
-                                                {provided.placeholder}
+                                                {providedDroppable.placeholder}
                                             </TableBody>
                                             </Table>
                                         </div>
