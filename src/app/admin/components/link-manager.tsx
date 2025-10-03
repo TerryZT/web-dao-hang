@@ -276,21 +276,22 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
               {categories.map((category, index) => (
                 <Draggable key={category.id} draggableId={category.id} index={index}>
                   {(providedDraggable) => (
-                    <div ref={providedDraggable.innerRef} {...providedDraggable.draggableProps}>
+                    <div
+                      ref={providedDraggable.innerRef}
+                      {...providedDraggable.draggableProps}
+                    >
                       <Collapsible defaultOpen className="rounded-lg border bg-card shadow-sm">
-                          <div className="flex items-center justify-between p-4 border-b hover:bg-muted/50 transition-colors">
-                              <div className="flex items-center gap-3 font-semibold text-lg">
-                                  <div {...providedDraggable.dragHandleProps} onClick={(e) => e.stopPropagation()} className="cursor-grab">
-                                    <GripVertical className="h-5 w-5 text-muted-foreground" />
-                                  </div>
-                                  <CollapsibleTrigger className="flex items-center gap-3 text-lg font-semibold w-full">
-                                    <span>{category.name}</span>
-                                    <Button variant="ghost" size="icon" className="cursor-pointer">
-                                        <ChevronDown className="h-4 w-4 transition-transform duration-200" />
-                                    </Button>
-                                  </CollapsibleTrigger>
-                              </div>
-                          </div>
+                        <div className="flex items-center justify-between p-4 border-b hover:bg-muted/50 transition-colors">
+                            <CollapsibleTrigger className="flex items-center gap-3 text-lg font-semibold w-full">
+                                <div {...providedDraggable.dragHandleProps} onClick={(e) => e.stopPropagation()} className="cursor-grab">
+                                  <GripVertical className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                                <span>{category.name}</span>
+                                <Button variant="ghost" size="icon" className="cursor-pointer">
+                                    <ChevronDown className="h-4 w-4 transition-transform duration-200" />
+                                </Button>
+                            </CollapsibleTrigger>
+                        </div>
                         <CollapsibleContent>
                           <div className="p-4 space-y-4">
                             <div className="flex justify-end items-center gap-2 pt-0">
