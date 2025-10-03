@@ -381,7 +381,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                                                         <AlertDialogAction onClick={() => handleDeleteLink(link.id, category.id)}>
                                                           确认
                                                         </AlertDialogAction>
-                                                      </AlertDialogFooter>。
+                                                      </AlertDialogFooter>
                                                     </AlertDialogContent>
                                                   </AlertDialog>
                                                 </div>
