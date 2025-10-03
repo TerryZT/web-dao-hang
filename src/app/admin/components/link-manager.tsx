@@ -51,7 +51,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Edit, Trash, GripVertical, PlusCircle, Save, ChevronDown } from "lucide-react";
+import { Plus, Edit, Trash, GripVertical, PlusCircle, Save, ChevronDown, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
@@ -262,6 +262,10 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
               </Button>
             </div>
           </div>
+          <p className="text-sm text-muted-foreground pt-2 flex items-center gap-2">
+            <Info className="h-4 w-4" />
+            提示：按住分类或链接左侧的 ⋮ 图标并拖动即可排序。
+          </p>
         </CardHeader>
       </Card>
 
@@ -276,15 +280,17 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                       <Collapsible defaultOpen className="rounded-lg border bg-card shadow-sm">
                         <CollapsibleTrigger className="w-full">
                           <div className="flex items-center justify-between p-4 border-b hover:bg-muted/50 transition-colors">
-                              <div className="flex items-center gap-3 font-semibold text-lg" {...providedDraggable.dragHandleProps} onClick={(e) => e.stopPropagation()}>
-                                  <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+                              <div className="flex items-center gap-3 font-semibold text-lg">
+                                  <div {...providedDraggable.dragHandleProps} onClick={(e) => e.stopPropagation()} className="cursor-grab">
+                                    <GripVertical className="h-5 w-5 text-muted-foreground" />
+                                  </div>
                                   <span>{category.name}</span>
                               </div>
-                              <div onClick={(e) => e.stopPropagation()}>
-                                <Button variant="ghost" size="icon" className="cursor-pointer">
-                                  <ChevronDown className="h-4 w-4 transition-transform duration-200" />
-                                </Button>
-                              </div>
+                              <Button variant="ghost" size="icon" className="cursor-pointer" asChild>
+                                  <div>
+                                    <ChevronDown className="h-4 w-4 transition-transform duration-200" />
+                                  </div>
+                              </Button>
                           </div>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
@@ -375,7 +381,7 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                                                         <AlertDialogAction onClick={() => handleDeleteLink(link.id, category.id)}>
                                                           确认
                                                         </AlertDialogAction>
-                                                      </AlertDialogFooter>
+                                                      </AlertDialogFooter>。
                                                     </AlertDialogContent>
                                                   </AlertDialog>
                                                 </div>
@@ -484,5 +490,3 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
     </div>
   );
 }
-
-    
