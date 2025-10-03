@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
@@ -271,25 +272,59 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
               {categories.map((category, index) => (
                 <Draggable key={category.id} draggableId={category.id} index={index}>
                   {(providedDraggable) => (
-                    <div ref={providedDraggable.innerRef} {...providedDraggable.draggableProps} >
+                    <div ref={providedDraggable.innerRef} {...providedDraggable.draggableProps}>
                       <Collapsible defaultOpen className="rounded-lg border bg-card shadow-sm">
-                        <div className="flex items-center justify-between p-4 border-b">
-                            <div className="flex items-center gap-3 font-semibold text-lg" {...providedDraggable.dragHandleProps}>
-                                <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
-                                <span>{category.name}</span>
-                            </div>
-                            <CollapsibleTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                    <ChevronDown className="h-4 w-4 transition-transform duration-200" />
+                        <CollapsibleTrigger className="w-full">
+                          <div className="flex items-center justify-between p-4 border-b hover:bg-muted/50 transition-colors">
+                              <div className="flex items-center gap-3 font-semibold text-lg" {...providedDraggable.dragHandleProps} onClick={(e) => e.stopPropagation()}>
+                                  <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+                                  <span>{category.name}</span>
+                              </div>
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <Button variant="ghost" size="icon" className="cursor-pointer">
+                                  <ChevronDown className="h-4 w-4 transition-transform duration-200" />
                                 </Button>
-                            </CollapsibleTrigger>
-                        </div>
-
+                              </div>
+                          </div>
+                        </CollapsibleTrigger>
                         <CollapsibleContent>
-                          <div className="p-4">
+                          <div className="p-4 space-y-4">
+                            <div className="flex justify-end items-center gap-2 pt-0">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleOpenDialog({ type: "edit-cat", category })}
+                                >
+                                  <Edit className="mr-2 h-3 w-3" /> 编辑名称
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" size="sm">
+                                      <Trash className="mr-2 h-3 w-3" /> 删除分类
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>确认删除？</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        这将永久删除 “{category.name}” 分类及其所有链接。此操作在点击“保存所有更改”后生效。
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>取消</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteCategory(category.id)}>
+                                        确认
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                                <Button size="sm" onClick={() => handleOpenDialog({ type: "add-link", categoryId: category.id })}>
+                                  <Plus className="mr-2 h-4 w-4" /> 添加链接
+                                </Button>
+                            </div>
                             <Droppable droppableId={category.id} type="link-dnd">
                               {(providedDroppable) => (
-                                <div ref={providedDroppable.innerRef} {...providedDroppable.droppableProps}>
+                                <div ref={providedDroppable.innerRef} {...providedDroppable.droppableProps} className="border rounded-md">
                                   <Table>
                                     <TableHeader>
                                       <TableRow>
@@ -354,43 +389,11 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
                                   </Table>
                                   {category.links.length === 0 && (
                                       <p className="text-center text-sm text-muted-foreground py-8">此分类下暂无链接。</p>
+
                                   )}
                                 </div>
                               )}
                             </Droppable>
-                          </div>
-                          <div className="flex justify-end items-center gap-2 p-4 border-t">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleOpenDialog({ type: "edit-cat", category })}
-                              >
-                                <Edit className="mr-2 h-3 w-3" /> 编辑名称
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="destructive" size="sm">
-                                    <Trash className="mr-2 h-3 w-3" /> 删除分类
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>确认删除？</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      这将永久删除 “{category.name}” 分类及其所有链接。此操作在点击“保存所有更改”后生效。
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>取消</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteCategory(category.id)}>
-                                      确认
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                              <Button size="sm" onClick={() => handleOpenDialog({ type: "add-link", categoryId: category.id })}>
-                                <Plus className="mr-2 h-4 w-4" /> 添加链接
-                              </Button>
                           </div>
                         </CollapsibleContent>
                       </Collapsible>
@@ -481,3 +484,5 @@ export function LinkManager({ initialCategories }: { initialCategories: Category
     </div>
   );
 }
+
+    
